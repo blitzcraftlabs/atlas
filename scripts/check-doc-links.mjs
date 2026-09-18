@@ -322,5 +322,3 @@ function pathToFileURL(filePath) {
   const resolved = path.resolve(filePath);
   return new URL(`file://${resolved}`);
 }
-
-// Self-hosted runner verification marker (safe to remove after CI validation).
