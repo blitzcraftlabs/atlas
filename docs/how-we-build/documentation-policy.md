@@ -44,7 +44,7 @@ procedures, and implementation conventions remain canonical in docs.
 The landing page should:
 
 - state the product identity clearly;
-- show the public CLI path and, until registry verification passes, the executable clone path;
+- show the public CLI path, and the clone path as contributor/evaluation workflow;
 - summarize verified capabilities with links into docs;
 - not duplicate contributor command dumps, example route tables, or How We Build indexes.
 

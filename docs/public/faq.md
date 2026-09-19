@@ -35,8 +35,9 @@ a contractual support SLA bundled with the repository.
 
 ### Can I use Atlas for my project?
 
-Yes. You can clone or fork Atlas and use it under Apache License 2.0. Commercial engineering,
-support, or consulting is a separate matter and is not required to use the source.
+Yes. Create a project with `pnpm dlx @blitzcraftlabs/atlas init my-app`, or clone or fork this
+repository, under Apache License 2.0. Commercial engineering, support, or consulting is a separate
+matter and is not required to use the source.
 
 ---
 
@@ -220,7 +221,7 @@ Flexibility has a cost. Consistency has a value. Atlas optimizes for consistency
 
 This documentation serves:
 
-- **Onboarding** — Contributors and consumers can understand the platform from a public clone
+- **Onboarding** — Consumers start from the public CLI; contributors can work from a public clone
 - **Evaluation** — Decision-makers can assess fit before adopting Atlas
 - **Architecture reference** — Patterns are documented for recall
 - **Evidence discipline** — Claims map to inspectable behavior where possible

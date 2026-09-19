@@ -42,11 +42,10 @@ Use the underlying tools directly:
 
 ---
 
-## Repository-local usage (current)
+## Repository-local usage
 
-The CLI is the public workspace package (`@blitzcraftlabs/atlas`) with an `atlas` binary. It is
-wired for npm Trusted Publishing after a one-time first publication of the validated tarball. Until
-registry verification passes, maintainers invoke it from the repository:
+The CLI is the public workspace package (`@blitzcraftlabs/atlas`) with an `atlas` binary.
+Maintainers and contributors invoke the linked workspace binary from a clone:
 
 ```bash
 pnpm install
@@ -63,10 +62,10 @@ The root `pnpm atlas` script runs the linked workspace binary via `pnpm exec atl
 
 ---
 
-## Public package identity (publication-ready)
+## Public package identity
 
-The distributable CLI package identity is `@blitzcraftlabs/atlas`. The intended user experience
-after the first registry publication is:
+The distributable CLI package identity is `@blitzcraftlabs/atlas`. The supported public bootstrap
+is:
 
 ```bash
 pnpm dlx @blitzcraftlabs/atlas init my-app
@@ -75,9 +74,10 @@ pnpm install
 pnpm dev
 ```
 
-That command is **not live** until `@blitzcraftlabs/atlas` exists on npm and
-`pnpm distribution:verify-registry <version>` passes. Until then, maintainers still use `pnpm atlas`
-from a clone of this repository, or a packed tarball installed outside the checkout.
+Published versions are listed on [npm](https://www.npmjs.com/package/@blitzcraftlabs/atlas). The
+first npm-published Atlas release is `@blitzcraftlabs/atlas@1.0.1` from Git tag `v1.0.1`. Canonical
+GitHub `v1.0.0` remains the first stable platform release and is not retagged. Subsequent versions
+use the documented GitHub Release pipeline, then npm publication of that same Atlas version.
 
 `pnpm pack` from `packages/cli` produces a tarball that installs and runs outside this repository.
 The packed artifact internalizes `@atlas/project` and must not depend on unpublished `@atlas/*`
@@ -129,12 +129,9 @@ so `apps/web`'s `perf:lhci` script resolves.
 `atlas init <project>` materializes that packaged tree into a new directory. It does not clone
 GitHub, copy the canonical monorepo, or read starter files from the caller's Atlas checkout.
 
-Until the first npm publication:
-
-- Maintainers still use `pnpm atlas` from a clone of this repository.
-- Do not assume `pnpm dlx @blitzcraftlabs/atlas` or `npx atlas` against a public registry.
-- `atlas --version` reports the installed CLI package version, which is distinct from a target
-  checkout's Atlas version.
+Maintainers still use `pnpm atlas` from a clone of this repository. Consumers use
+`pnpm dlx @blitzcraftlabs/atlas`. `atlas --version` reports the installed CLI package version, which
+is distinct from a target checkout's Atlas version.
 
 ### Maintainer clean-room verification
 
@@ -189,18 +186,21 @@ the generated project's install/build/Doctor/generator lifecycle must be proven 
 After a version exists on npm, `pnpm distribution:verify-registry <version>` repeats that lifecycle
 from the registry and must not fall back to a local tarball.
 
-First publication of a never-before-published package must use the exact canonical Git tag matching
-the unpublished package version — currently **`v1.0.1`**, not `v1.0.0`, not `v0.5.0`, and not this
-feature branch:
+The first npm publication of `@blitzcraftlabs/atlas` was a human-authenticated publish of the
+validated `v1.0.1` tarball. Later missing versions of that existing package publish with OIDC via
+npm Trusted Publishing on GitHub Actions `release.yml`. Do not republish an existing version, retag
+`v1.0.0`, or bootstrap npm with `0.5.0` or `1.0.0`.
+
+The one-time bootstrap procedure for a **new** unpublished package name remains:
 
 ```bash
 git fetch --tags
-git worktree add /tmp/atlas-v1.0.1 v1.0.1
-cd /tmp/atlas-v1.0.1
+git worktree add /tmp/atlas-vX.Y.Z vX.Y.Z
+cd /tmp/atlas-vX.Y.Z
 pnpm install --frozen-lockfile
 pnpm distribution:prepare-publish --require-release-tag
 # human: npm publish <printed-tarball> --access public --ignore-scripts
-pnpm distribution:verify-registry 1.0.1
+pnpm distribution:verify-registry <version>
 ```
 
 Temp-directory retention:
@@ -269,8 +269,8 @@ Generated-at-init files are written deliberately rather than copied from the Atl
 
 `--reference` is checkout-init only. The generated project does not include `apps/reference`.
 
-This command does **not** publish to npm. Do not assume `pnpm dlx @blitzcraftlabs/atlas` works until
-a later Distribution v1 slice publishes the package.
+`atlas init` does **not** publish to npm. The public install path is
+`pnpm dlx @blitzcraftlabs/atlas`.
 
 #### Checkout init — `atlas init`
 

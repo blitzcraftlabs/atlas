@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "private": true,
   "license": "Apache-2.0",
-  "description": "Enterprise frontend platform monorepo",
+  "description": "Open-source frontend platform for production Next.js applications.",
   "engines": {
     "node": ">=22.0.0",
     "pnpm": ">=10.0.0"

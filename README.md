@@ -27,9 +27,26 @@ live in your repository and remain under your control. Atlas does not publish a 
 
 ## Quick start
 
+```bash
+pnpm dlx @blitzcraftlabs/atlas init my-app
+cd my-app
+pnpm install
+pnpm dev
+```
+
+Requires Node.js `>=22` and pnpm `>=10`. The public CLI is
+[`@blitzcraftlabs/atlas`](https://www.npmjs.com/package/@blitzcraftlabs/atlas). Published versions
+are listed on npm and [GitHub Releases](https://github.com/blitzcraftlabs/atlas/releases). Canonical
+GitHub `v1.0.0` remains the first stable platform release; `v1.0.1` is the first npm-published Atlas
+release.
+
+```text
+Open http://localhost:3000
+```
+
 ### Clone this repository
 
-The currently executable path is a clone of this repository:
+Contributors and evaluators can still work from a checkout of this repository:
 
 ```bash
 git clone https://github.com/blitzcraftlabs/atlas.git
@@ -39,25 +56,6 @@ pnpm install
 cp apps/web/.env.example apps/web/.env.local
 pnpm --filter @atlas/web dev
 ```
-
-Requires Node.js `>=22` and pnpm `>=10`.
-
-```text
-Open http://localhost:3000
-```
-
-### Public CLI (pending first registry publication)
-
-```bash
-pnpm dlx @blitzcraftlabs/atlas init my-app
-cd my-app
-pnpm install
-pnpm dev
-```
-
-`@blitzcraftlabs/atlas` is not on the npm registry yet. Do not treat `pnpm dlx` as live until
-registry verification passes for `@blitzcraftlabs/atlas@1.0.1`. Canonical GitHub `v1.0.0` remains
-the first stable platform release; `1.0.1` is the intended first npm-published version.
 
 ## What you get
 

@@ -23,7 +23,7 @@ See also: [`SECURITY.md`](../../SECURITY.md), [security engineering](../how-we-b
 | Telemetry / error data            | Web Vitals route, Sentry, logs                                                                                      | Redaction helpers exist; consumers must use them                                             |
 | CI credentials                    | GitHub Actions `GITHUB_TOKEN`, optional `TURBO_*`, `LHCI_GITHUB_APP_TOKEN`, Codecov                                 | Least-privilege workflow `permissions` applied                                               |
 | Repository write credentials      | Version PR job (`contents: write`, `pull-requests: write`); GitHub Release job (`contents: write`, `actions: read`) | Fail-closed tag/Release publication; no retag; no npm token                                  |
-| npm Trusted Publishing OIDC       | npm-publish job (`id-token: write`, `contents: read`) on push to `main` after GitHub Release                        | GitHub-hosted only; no `NPM_TOKEN`; first package version is a human tarball publish         |
+| npm Trusted Publishing OIDC       | npm-publish job (`id-token: write`, `contents: read`) on push to `main` after GitHub Release                        | GitHub-hosted only; no `NPM_TOKEN`; first package version was a human tarball publish        |
 | Release / snapshot artifacts      | Workflow artifacts (Playwright, SBOM, audit JSON)                                                                   | 90-day SBOM retention for snapshots                                                          |
 | Self-hosted runner host state     | Persistent disk under `/var/cache/ci` when enabled                                                                  | Trusted-operator domain                                                                      |
 
@@ -93,14 +93,14 @@ reduce XSS theft; they do not encrypt the verifier at rest in the browser cookie
 
 ## Supply-chain / build
 
-| Threat                             | Control                                                                                                                                                       |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Malicious / vulnerable npm package | Frozen lockfile CI, Atlas audit policy (HIGH/CRITICAL), Renovate                                                                                              |
-| Lockfile manipulation              | CI lockfile-up-to-date check; forbidden alternate lockfiles                                                                                                   |
-| GitHub Action compromise           | SHA-pinned remote actions; full-SHA allow-rule in workflow check                                                                                              |
-| Mutable container tags             | Gitleaks pinned by digest                                                                                                                                     |
-| Secret leakage in git              | Gitleaks git-history scan of the CI checkout (`fetch-depth: 0`); history fixture proves committed-then-deleted secrets are detected                           |
-| Artifact tampering                 | Exact packed `.tgz` is hashed before npm publish; OIDC provenance on later publishes; first npm version is a human-authenticated publish of that same tarball |
+| Threat                             | Control                                                                                                                                                        |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Malicious / vulnerable npm package | Frozen lockfile CI, Atlas audit policy (HIGH/CRITICAL), Renovate                                                                                               |
+| Lockfile manipulation              | CI lockfile-up-to-date check; forbidden alternate lockfiles                                                                                                    |
+| GitHub Action compromise           | SHA-pinned remote actions; full-SHA allow-rule in workflow check                                                                                               |
+| Mutable container tags             | Gitleaks pinned by digest                                                                                                                                      |
+| Secret leakage in git              | Gitleaks git-history scan of the CI checkout (`fetch-depth: 0`); history fixture proves committed-then-deleted secrets are detected                            |
+| Artifact tampering                 | Exact packed `.tgz` is hashed before npm publish; OIDC provenance on later publishes; first npm version was a human-authenticated publish of that same tarball |
 
 `pnpm audit` is **not** complete application security.
 

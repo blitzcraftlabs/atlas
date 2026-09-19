@@ -20,7 +20,7 @@ Atlas is an open-source frontend platform for Next.js teams. When you run it, yo
 
 ---
 
-## Public CLI (pending first registry publication)
+## Public CLI
 
 ```bash
 pnpm dlx @blitzcraftlabs/atlas init my-app
@@ -29,13 +29,16 @@ pnpm install
 pnpm dev
 ```
 
-`@blitzcraftlabs/atlas` is not on the npm registry yet. Do not treat `pnpm dlx` as live until
-registry verification passes for `@blitzcraftlabs/atlas@1.0.1`. Until then, use the clone path
-below.
+Requires Node.js `>=22` and pnpm `>=10`. `@blitzcraftlabs/atlas` is live on npm. Current versions
+are listed on [npm](https://www.npmjs.com/package/@blitzcraftlabs/atlas) and
+[GitHub Releases](https://github.com/blitzcraftlabs/atlas/releases). Canonical GitHub `v1.0.0`
+remains the first stable platform release; `v1.0.1` is the first npm-published Atlas release.
 
 ---
 
-## Prerequisites
+## Clone this repository
+
+Contributors and evaluators can still work from a checkout:
 
 - **Node.js 22+**
 - **pnpm 10+**

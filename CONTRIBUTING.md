@@ -13,8 +13,9 @@ into a product.
 - **Maintainers** own platform direction, releases, and canonical documentation.
 - **External contributors** open pull requests against this public repository for features, fixes,
   docs, and reviews.
-- **Downstream consumers** fork or clone Atlas into a product codebase and may upstream fixes with
-  provenance.
+- **Downstream consumers** typically start from `pnpm dlx @blitzcraftlabs/atlas init my-app`. Fork
+  or clone this repository when contributing or evaluating the full monorepo, and upstream fixes
+  with provenance.
 
 Licensing, versioning, and support expectations are in
 [Releases and Governance](docs/how-we-build/releases-and-governance.md). Atlas is **licensed under

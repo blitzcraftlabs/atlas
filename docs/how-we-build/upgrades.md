@@ -289,7 +289,7 @@ Test suite: `packages/cli/src/__tests__/upgrade-historical-rehearsal.test.ts`
 
 ## Supported upgrade promise (1.0)
 
-The first npm-distributed Atlas CLI (`@blitzcraftlabs/atlas@1.0.1`, once published from canonical
+The first npm-distributed Atlas CLI (`@blitzcraftlabs/atlas@1.0.1`, published from canonical
 `v1.0.1`) supports:
 
 | Promise               | Detail                                                                                                        |
@@ -312,9 +312,6 @@ corrupt packaged evidence fails closed.
 The canonical `v0.5.0` tag is the previous production baseline for the first public npm CLI. GitHub
 `v1.0.0` is the first stable platform release. The first npm registry version is `1.0.1`. Do not
 publish `0.5.0` or `1.0.0` to npm, and do not retag `v1.0.0`.
-
-Until `@blitzcraftlabs/atlas` is published, use this repository or a packed tarball rather than the
-public registry.
 
 ---
 

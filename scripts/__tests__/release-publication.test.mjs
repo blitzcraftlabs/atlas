@@ -681,7 +681,7 @@ describe("release notes", () => {
     assert.match(notes, /Internal `@atlas\/\*` workspace packages remain `private`/);
     assert.match(notes, /public npm package identity/);
     assert.match(notes, /npm distribution occurs after the canonical GitHub Release/);
-    assert.match(notes, /documented human bootstrap/);
+    assert.match(notes, /first npm publication was a human-authenticated publish/);
     assert.match(notes, /Trusted Publishing/);
     assert.match(notes, /This GitHub Release does \*\*not\*\* include signed provenance, SLSA attestation/);
     assert.match(notes, /not a GitHub Release attestation and is not SLSA/);
@@ -708,7 +708,7 @@ describe("release notes", () => {
     assert.match(notes, /Breaking public-contract changes after 1\.0 require a major version/);
     assert.match(notes, /No LTS programme/);
     assert.match(notes, /public npm package identity/);
-    assert.match(notes, /npm Trusted Publishing may attach npm provenance/);
+    assert.match(notes, /npm Trusted Publishing attaches npm provenance/);
     assert.doesNotMatch(notes, /formal security audit completed/);
     assert.doesNotMatch(notes, /Atlas remains pre-1\.0/);
   });

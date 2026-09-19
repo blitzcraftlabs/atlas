@@ -16,8 +16,9 @@ The generated application stays **source-owned**. Your Next.js app, UI packages,
 live in your repository. Atlas does not publish a public collection of `@atlas/*` packages. The
 public package is `@blitzcraftlabs/atlas`.
 
-Start from `atlas init` (or the clean starter in `apps/web`), explore `apps/reference` to see a
-finished Atlas product, then delete `/examples` and build on the platform primitives.
+Start from the public CLI (`pnpm dlx @blitzcraftlabs/atlas init my-app`), or from a clone of this
+repository. Explore `apps/reference` to see a finished Atlas product, then delete `/examples` and
+build on the platform primitives.
 
 ### Two applications
 
@@ -53,7 +54,7 @@ from using the source.
 
 | Document                                                            | What You'll Learn                          |
 | ------------------------------------------------------------------- | ------------------------------------------ |
-| [Quickstart](quickstart.md)                                         | Clone path, forthcoming CLI, evaluation    |
+| [Quickstart](quickstart.md)                                         | Public CLI, clone path, evaluation         |
 | [Architecture](architecture.md)                                     | System design and mental model             |
 | [Examples](examples.md)                                             | Reference patterns in the template         |
 | [Capabilities](capabilities.md)                                     | What Atlas solves and why it matters       |
