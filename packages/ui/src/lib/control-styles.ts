@@ -10,8 +10,9 @@ export const controlGeometryClasses =
 export const controlSurfaceClasses =
   "border border-control-border bg-control-background text-control-foreground shadow-control transition-[color,box-shadow,background-color,border-color] outline-none hover:border-control-border-hover hover:bg-control-background-hover";
 
+/** Matches shadcn base-vega focus wiring (`--ring` via border-ring + ring-ring/50). */
 export const controlFocusClasses =
-  "focus-visible:border-focus-ring focus-visible:ring-[3px] focus-visible:ring-focus-ring/25";
+  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 export const controlInvalidClasses =
   "aria-invalid:border-destructive aria-invalid:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/30";
@@ -36,7 +37,7 @@ export function controlClasses(...extra: (string | undefined | false)[]) {
 
 /** Shared focus ring treatment for interactive controls (Button, Checkbox, Switch). */
 export const interactiveFocusClasses =
-  "focus-visible:border-focus-ring focus-visible:ring-[3px] focus-visible:ring-focus-ring/25 outline-none";
+  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none";
 
 /** Shared invalid-state treatment for interactive controls. */
 export const interactiveInvalidClasses =
