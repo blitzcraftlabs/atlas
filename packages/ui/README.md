@@ -50,7 +50,7 @@ Visual styling flows through semantic tokens defined in `packages/ui/src/styles/
 ```text
 foundation tokens (:root / .dark)
       ↓
-Atlas semantic tokens (--control-*, --surface-*, --border-*, --focus-ring, status colors)
+Atlas semantic tokens (--control-*, --surface-*, --border-*, status colors; focus uses shadcn --ring)
       ↓
 component variants (CVA + shared control-styles)
       ↓
@@ -58,7 +58,9 @@ application UI
 ```
 
 Retheme Atlas primarily by changing semantic tokens. Shared control geometry and focus treatment
-live in `packages/ui/src/lib/control-styles.ts`.
+live in `packages/ui/src/lib/control-styles.ts` (same `focus-visible:border-ring` + `ring-ring/50`
+pattern as base-vega primitives). `--focus-ring` in `globals.css` is a deprecated alias of `--ring`
+for custom classes only.
 
 ## shadcn configuration
 
