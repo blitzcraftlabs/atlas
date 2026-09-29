@@ -7,8 +7,19 @@ import { cn } from "./utils";
 export const controlGeometryClasses =
   "h-9 w-full min-w-0 rounded-control px-2.5 text-sm md:text-sm";
 
+/**
+ * Surface transitions only — exclude box-shadow so Tailwind focus/invalid rings snap on/off
+ * instead of fading during blur (rings are implemented as box-shadow).
+ */
+export const controlSurfaceTransitionClasses = "transition-[color,background-color,border-color]";
+
 export const controlSurfaceClasses =
-  "border border-control-border bg-control-background text-control-foreground shadow-control transition-[color,box-shadow,background-color,border-color] outline-none hover:border-control-border-hover hover:bg-control-background-hover";
+  "border border-control-border bg-control-background text-control-foreground shadow-control outline-none hover:border-control-border-hover hover:bg-control-background-hover";
+
+export const controlSurfaceWithTransitionClasses = cn(
+  controlSurfaceClasses,
+  controlSurfaceTransitionClasses
+);
 
 /** Matches shadcn base-vega focus wiring (`--ring` via border-ring + ring-ring/50). */
 export const controlFocusClasses =
@@ -26,7 +37,7 @@ export const controlPlaceholderClasses = "placeholder:text-control-foreground-mu
 export function controlClasses(...extra: (string | undefined | false)[]) {
   return cn(
     controlGeometryClasses,
-    controlSurfaceClasses,
+    controlSurfaceWithTransitionClasses,
     controlFocusClasses,
     controlInvalidClasses,
     controlDisabledClasses,

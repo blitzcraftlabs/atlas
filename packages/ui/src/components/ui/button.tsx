@@ -2,6 +2,7 @@ import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import {
+  controlSurfaceTransitionClasses,
   interactiveDisabledClasses,
   interactiveFocusClasses,
   interactiveInvalidClasses,
@@ -10,7 +11,8 @@ import { cn } from "../../lib/utils";
 
 const buttonVariants = cva(
   cn(
-    "group/button inline-flex shrink-0 items-center justify-center rounded-control bg-clip-padding text-sm font-medium whitespace-nowrap shadow-control transition-[color,box-shadow,background-color,border-color] select-none active:not-aria-[haspopup]:translate-y-px",
+    "group/button inline-flex shrink-0 items-center justify-center rounded-control bg-clip-padding text-sm font-medium whitespace-nowrap shadow-control select-none active:not-aria-[haspopup]:translate-y-px",
+    controlSurfaceTransitionClasses,
     interactiveFocusClasses,
     interactiveDisabledClasses,
     interactiveInvalidClasses,

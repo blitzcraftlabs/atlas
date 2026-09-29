@@ -2,7 +2,11 @@
 
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch";
 
-import { interactiveFocusClasses, interactiveInvalidClasses } from "../../lib/control-styles";
+import {
+  controlSurfaceTransitionClasses,
+  interactiveFocusClasses,
+  interactiveInvalidClasses,
+} from "../../lib/control-styles";
 import { cn } from "../../lib/utils";
 
 function Switch({
@@ -17,7 +21,8 @@ function Switch({
       data-slot="switch"
       data-size={size}
       className={cn(
-        "peer group/switch shadow-control data-checked:bg-switch-track-checked data-unchecked:border-control-border data-unchecked:bg-switch-track relative inline-flex shrink-0 items-center rounded-full border border-transparent transition-[color,box-shadow,background-color] group-has-[:focus-visible]/field-label:border-transparent group-has-[:focus-visible]/field-label:ring-0 after:absolute after:-inset-x-3 after:-inset-y-2 data-disabled:cursor-not-allowed data-disabled:opacity-50 data-[size=default]:h-[18.4px] data-[size=default]:w-[32px] data-[size=sm]:h-[14px] data-[size=sm]:w-[24px]",
+        "peer group/switch shadow-control data-checked:bg-switch-track-checked data-unchecked:border-control-border data-unchecked:bg-switch-track relative inline-flex shrink-0 items-center rounded-full border border-transparent group-has-[:focus-visible]/field-label:border-transparent group-has-[:focus-visible]/field-label:ring-0 after:absolute after:-inset-x-3 after:-inset-y-2 data-disabled:cursor-not-allowed data-disabled:opacity-50 data-[size=default]:h-[18.4px] data-[size=default]:w-[32px] data-[size=sm]:h-[14px] data-[size=sm]:w-[24px]",
+        controlSurfaceTransitionClasses,
         interactiveFocusClasses,
         interactiveInvalidClasses,
         className
