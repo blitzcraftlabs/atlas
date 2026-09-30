@@ -1,6 +1,10 @@
 import { test, expect, type Page } from "@playwright/test";
 
-import { gotoWithReferenceSessionReady, setReferenceSession } from "./helpers/reference-session";
+import {
+  gotoReferenceHarnessReady,
+  gotoWithReferenceSessionReady,
+  setReferenceSession,
+} from "./helpers/reference-session";
 
 const SEEDED_USER_EMAILS = [
   "reference.user@atlas.local",
@@ -18,7 +22,7 @@ async function openHarnessAs(
   scenario: "success" | "server-error" | "validation" = "success"
 ) {
   await setReferenceSession(page, persona, scenario);
-  await page.goto("/harness");
+  await gotoReferenceHarnessReady(page);
   await expect(page.getByText(/Session status: authenticated/)).toBeVisible();
 }
 

@@ -31,12 +31,33 @@ function isAuthMeResponse(response: {
   return response.request().method() === "GET" && response.url().includes("/api/auth/me");
 }
 
+const SESSION_LOADING = (page: Page) => page.getByRole("status", { name: "Loading session" });
+
+const HARNESS_LOADING = (page: Page) =>
+  page.getByRole("status", { name: "Loading reference status" });
+
 /**
  * Wait until client-side `useSession()` finishes hydrating.
  * Permission-gated UI (for example the users list actions) renders only after this.
  */
 export async function waitForReferenceSessionReady(page: Page): Promise<void> {
-  await expect(page.getByRole("status", { name: "Loading session" })).toBeHidden();
+  await expect(async () => {
+    const loading = SESSION_LOADING(page);
+    if (await loading.isVisible()) {
+      await expect(loading).toBeHidden();
+    }
+  }).toPass({ timeout: 15_000 });
+}
+
+/** Wait until the harness panel finishes loading reference status (after session is ready). */
+export async function waitForReferenceHarnessReady(page: Page): Promise<void> {
+  await waitForReferenceSessionReady(page);
+  await expect(async () => {
+    const loading = HARNESS_LOADING(page);
+    if (await loading.isVisible()) {
+      await expect(loading).toBeHidden();
+    }
+  }).toPass({ timeout: 15_000 });
 }
 
 /**
@@ -48,4 +69,13 @@ export async function gotoWithReferenceSessionReady(page: Page, path: string): P
     page.goto(path),
   ]);
   await waitForReferenceSessionReady(page);
+}
+
+/** Navigate to `/harness` and wait for session + harness status queries to settle. */
+export async function gotoReferenceHarnessReady(page: Page): Promise<void> {
+  await Promise.all([
+    page.waitForResponse((response) => isAuthMeResponse(response)),
+    page.goto("/harness"),
+  ]);
+  await waitForReferenceHarnessReady(page);
 }
