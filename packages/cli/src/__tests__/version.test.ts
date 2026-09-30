@@ -19,6 +19,8 @@ const CLI_PACKAGE_VERSION = (
   }
 ).version;
 
+const SYNTHETIC_CHECKOUT_VERSION = CLI_PACKAGE_VERSION === "9.9.9" ? "8.8.8" : "9.9.9";
+
 describe("CLI package version resolution", () => {
   it("reads the installed CLI version from the @blitzcraftlabs/atlas package, not the process cwd", () => {
     expect(readCliAtlasVersion()).toBe(CLI_PACKAGE_VERSION);
@@ -60,13 +62,17 @@ describe("CLI package version resolution", () => {
     const checkout = mkdtempSync(path.join(os.tmpdir(), "atlas-cli-checkout-version-"));
     writeFileSync(
       path.join(checkout, "package.json"),
-      `${JSON.stringify({ name: "@atlas/monorepo", version: "1.2.3" }, null, 2)}\n`,
+      `${JSON.stringify(
+        { name: "@atlas/monorepo", version: SYNTHETIC_CHECKOUT_VERSION },
+        null,
+        2
+      )}\n`,
       "utf8"
     );
 
-    expect(readCheckoutAtlasVersion(checkout)).toBe("1.2.3");
+    expect(readCheckoutAtlasVersion(checkout)).toBe(SYNTHETIC_CHECKOUT_VERSION);
     expect(readCliAtlasVersion()).toBe(CLI_PACKAGE_VERSION);
-    expect(readCliAtlasVersion()).not.toBe("1.2.3");
+    expect(readCliAtlasVersion()).not.toBe(SYNTHETIC_CHECKOUT_VERSION);
     rmSync(checkout, { recursive: true, force: true });
   });
 
