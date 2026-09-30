@@ -1,5 +1,14 @@
 # @atlas/web
 
+## 1.2.2
+
+### Patch Changes
+
+- Updated dependencies [2817138]
+- Updated dependencies [abecddc]
+  - @atlas/ui@1.2.2
+  - @atlas/consent@1.2.2
+
 ## 1.2.1
 
 ### Patch Changes

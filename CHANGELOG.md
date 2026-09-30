@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-09-30
+
+### Changed
+
+- Stop animating box-shadow on shared Atlas controls so focus and invalid rings appear and disappear
+  immediately; color, background, and border transitions are unchanged.
+- Align shared control focus styles with shadcn base-vega (`border-ring`, `ring-3`, `ring-ring/50`)
+  so Input, Button, and related controls match registry primitives and input-group focus treatment.
+
 ## [1.2.1] - 2026-09-25
 
 ### Changed
@@ -159,7 +168,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Enterprise frontend platform monorepo: `@atlas/web` template app, `@atlas/ui`, `@atlas/config`,
   `@atlas/consent`, conventions, and documentation.
 
-[Unreleased]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/blitzcraftlabs/atlas/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/blitzcraftlabs/atlas/compare/v1.0.1...v1.1.0

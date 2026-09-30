@@ -1,5 +1,15 @@
 # @atlas/ui
 
+## 1.2.2
+
+### Patch Changes
+
+- 2817138: Stop animating box-shadow on shared Atlas controls so focus and invalid rings appear and
+  disappear immediately; color, background, and border transitions are unchanged.
+- abecddc: Align shared control focus styles with shadcn base-vega (`border-ring`, `ring-3`,
+  `ring-ring/50`) so Input, Button, and related controls match registry primitives and input-group
+  focus treatment.
+
 ## 1.2.1
 
 ## 1.2.0
