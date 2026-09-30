@@ -24,4 +24,16 @@ describe("Input", () => {
     render(<Input disabled placeholder="Name" />);
     expect(document.querySelector("input")).toBeDisabled();
   });
+
+  it("keeps focus and invalid borders above hover", () => {
+    render(<Input placeholder="Name" />);
+    const input = document.querySelector("input");
+
+    expect(input).toHaveClass("hover:border-control-border-hover");
+    expect(input).toHaveClass("focus-visible:border-ring");
+    expect(input).toHaveClass("focus-visible:hover:border-ring");
+    expect(input).toHaveClass("aria-invalid:border-destructive");
+    expect(input).toHaveClass("aria-invalid:hover:border-destructive");
+    expect(input).toHaveClass("aria-invalid:focus-visible:border-destructive");
+  });
 });

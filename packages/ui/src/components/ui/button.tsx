@@ -30,7 +30,7 @@ const buttonVariants = cva(
         ghost:
           "border border-transparent text-control-foreground shadow-none hover:bg-control-background-hover active:bg-control-background-active aria-expanded:bg-control-background-hover",
         destructive:
-          "border border-control-destructive-border bg-control-destructive-background text-control-destructive-foreground hover:border-control-destructive-border hover:bg-control-destructive-background-hover active:bg-control-destructive-background-active focus-visible:border-destructive focus-visible:ring-destructive/25",
+          "border border-control-destructive-border bg-control-destructive-background text-control-destructive-foreground hover:border-control-destructive-border hover:bg-control-destructive-background-hover active:bg-control-destructive-background-active focus-visible:border-destructive focus-visible:hover:border-destructive focus-visible:ring-destructive/25",
         link: "border-transparent text-primary shadow-none underline-offset-4 hover:underline",
       },
       size: {
