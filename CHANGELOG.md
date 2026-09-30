@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-09-30
+
+### Changed
+
+- Keep focused and invalid control borders above hover by using compound selectors instead of CSS
+  source order.
+
 ## [1.2.2] - 2026-09-30
 
 ### Changed
@@ -168,7 +175,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Enterprise frontend platform monorepo: `@atlas/web` template app, `@atlas/ui`, `@atlas/config`,
   `@atlas/consent`, conventions, and documentation.
 
-[Unreleased]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.3...HEAD
+[1.2.3]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/blitzcraftlabs/atlas/compare/v1.1.0...v1.2.0

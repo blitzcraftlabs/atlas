@@ -1,5 +1,12 @@
 # @atlas/ui
 
+## 1.2.3
+
+### Patch Changes
+
+- a6c1a93: Keep focused and invalid control borders above hover by using compound selectors instead
+  of CSS source order.
+
 ## 1.2.2
 
 ### Patch Changes

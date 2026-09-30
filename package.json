@@ -1,6 +1,6 @@
 {
   "name": "@atlas/monorepo",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "private": true,
   "license": "Apache-2.0",
   "description": "Open-source frontend platform for production Next.js applications.",
