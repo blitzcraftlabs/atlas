@@ -59,8 +59,9 @@ application UI
 
 Retheme Atlas primarily by changing semantic tokens. Shared control geometry and focus treatment
 live in `packages/ui/src/lib/control-styles.ts` (same `focus-visible:border-ring` + `ring-ring/50`
-pattern as base-vega primitives). `--focus-ring` in `globals.css` is a deprecated alias of `--ring`
-for custom classes only.
+pattern as base-vega primitives, plus compound `focus-visible:hover:` / `aria-invalid:*` selectors
+so invalid and focus borders outrank hover). `--focus-ring` in `globals.css` is a deprecated alias
+of `--ring` for custom classes only.
 
 ## shadcn configuration
 

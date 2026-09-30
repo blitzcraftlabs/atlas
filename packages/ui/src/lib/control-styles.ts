@@ -21,12 +21,20 @@ export const controlSurfaceWithTransitionClasses = cn(
   controlSurfaceTransitionClasses
 );
 
-/** Matches shadcn base-vega focus wiring (`--ring` via border-ring + ring-ring/50). */
+/**
+ * Matches shadcn base-vega focus wiring (`--ring` via border-ring + ring-ring/50).
+ * Compound `focus-visible:hover:` selectors outrank equal-specificity hover borders
+ * so precedence is invalid/destructive > focus > hover > idle.
+ */
 export const controlFocusClasses =
-  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+  "focus-visible:border-ring focus-visible:hover:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
+/**
+ * Destructive semantics stay on hover and focus-visible. Compound selectors beat
+ * `hover:border-*` and `focus-visible:border-ring` without relying on CSS source order.
+ */
 export const controlInvalidClasses =
-  "aria-invalid:border-destructive aria-invalid:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/30";
+  "aria-invalid:border-destructive aria-invalid:hover:border-destructive aria-invalid:focus-visible:border-destructive aria-invalid:focus-visible:hover:border-destructive aria-invalid:ring-[3px] aria-invalid:ring-destructive/20 aria-invalid:focus-visible:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:hover:border-destructive/50 dark:aria-invalid:focus-visible:border-destructive/50 dark:aria-invalid:focus-visible:hover:border-destructive/50 dark:aria-invalid:ring-destructive/30 dark:aria-invalid:focus-visible:ring-destructive/30";
 
 export const controlDisabledClasses =
   "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50";
@@ -48,11 +56,10 @@ export function controlClasses(...extra: (string | undefined | false)[]) {
 
 /** Shared focus ring treatment for interactive controls (Button, Checkbox, Switch). */
 export const interactiveFocusClasses =
-  "focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none";
+  "focus-visible:border-ring focus-visible:hover:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none";
 
 /** Shared invalid-state treatment for interactive controls. */
-export const interactiveInvalidClasses =
-  "aria-invalid:border-destructive aria-invalid:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/30";
+export const interactiveInvalidClasses = controlInvalidClasses;
 
 /** Shared disabled treatment for interactive controls. */
 export const interactiveDisabledClasses =

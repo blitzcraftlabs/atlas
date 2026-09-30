@@ -50,4 +50,34 @@ describe("Button", () => {
 
     expect(onClick).toHaveBeenCalledTimes(1);
   });
+
+  it("keeps the focus border above hover on outline and secondary variants", () => {
+    const { container: outlineContainer } = render(<Button variant="outline">Outline</Button>);
+    const { container: secondaryContainer } = render(
+      <Button variant="secondary">Secondary</Button>
+    );
+
+    const outline = outlineContainer.querySelector('[data-slot="button"]');
+    const secondary = secondaryContainer.querySelector('[data-slot="button"]');
+
+    expect(outline).toHaveClass("hover:border-control-border-hover");
+    expect(outline).toHaveClass("focus-visible:border-ring");
+    expect(outline).toHaveClass("focus-visible:hover:border-ring");
+    expect(outline).toHaveClass("aria-invalid:hover:border-destructive");
+    expect(outline).toHaveClass("aria-invalid:focus-visible:border-destructive");
+
+    expect(secondary).toHaveClass("hover:border-control-secondary-border");
+    expect(secondary).toHaveClass("focus-visible:border-ring");
+    expect(secondary).toHaveClass("focus-visible:hover:border-ring");
+  });
+
+  it("keeps destructive border semantics while focused and hovered", () => {
+    const { container } = render(<Button variant="destructive">Delete</Button>);
+    const button = container.querySelector('[data-slot="button"]');
+
+    expect(button).toHaveClass("hover:border-control-destructive-border");
+    expect(button).toHaveClass("focus-visible:border-destructive");
+    expect(button).toHaveClass("focus-visible:hover:border-destructive");
+    expect(button).not.toHaveClass("focus-visible:hover:border-ring");
+  });
 });
