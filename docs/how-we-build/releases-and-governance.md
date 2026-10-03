@@ -84,7 +84,7 @@ existed. Do not invent a `0.5.1` or `0.6.0` public npm bootstrap, and do not ret
 | CLI flags         | `--json`, `--cwd`, `--dry-run`, `upgrade --to`, generate `--query` / `--mutation` / `--form` / `--tests`                                                               |
 | CLI behavior      | Documented exit codes; JSON envelopes `{ ok, command, result \| error }`                                                                                               |
 | Generated project | Workspace layout (`apps/web`, `packages/ui`, `packages/config`, `packages/consent`), `atlas.config.json` baseline, ownership/template-sync model, root package scripts |
-| Upgrade           | Packaged snapshots, adjacent current+previous catalog, fail-closed missing evidence, no silent overwrite of consumer-modified synced paths                             |
+| Upgrade           | Packaged snapshots, adjacent published-release catalog, fail-closed missing evidence, no silent overwrite of consumer-modified synced paths                            |
 | Distribution      | Package `@blitzcraftlabs/atlas`, binary `atlas`, Node `>=22`, pnpm `>=10`, GitHub tag `vX.Y.Z` equals npm version                                                      |
 | Architecture      | Consumer-visible `@atlas/ui` / `@atlas/config` / `@atlas/consent` stay source-owned and private; Doctor and generators follow the project contract                     |
 

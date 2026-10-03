@@ -34,7 +34,6 @@ import {
   isForbiddenBootstrapPath,
 } from "./helpers/pack-artifact";
 import { runAtlasCli } from "./helpers/run-cli";
-import { atlasDlxForEnable } from "../init/cli-release";
 import { CLI_PACKAGE_NAME } from "../version";
 
 function writePackagedBootstrapFixture(options?: {
@@ -592,9 +591,7 @@ describe("atlas init bootstrap generated project", () => {
         );
         expect(consumerCi).toContain("runs-on: ubuntu-latest");
         expect(consumerCi).toContain("pnpm install --frozen-lockfile");
-        expect(consumerCi).toContain(
-          `pnpm dlx @blitzcraftlabs/atlas@${manifest.atlasVersion} doctor`
-        );
+        expect(consumerCi).toContain("pnpm atlas doctor");
         expect(consumerCi).toMatch(/^\s+run: pnpm lint$/m);
         expect(consumerCi).toMatch(/^\s+run: pnpm typecheck$/m);
         expect(consumerCi).toMatch(/^\s+run: pnpm test$/m);
@@ -629,7 +626,7 @@ describe("atlas init bootstrap generated project", () => {
         expect(packageJson.scripts.test).toBeDefined();
         expect(packageJson.scripts.format).toBeDefined();
         expect(packageJson.scripts["api:gen"]).toBeDefined();
-        expect(packageJson.scripts.atlas).toBeUndefined();
+        expect(packageJson.scripts.atlas).toBe("atlas");
         expect(packageJson.scripts["template:check"]).toBeUndefined();
         expect(packageJson.scripts["template:sync"]).toBeUndefined();
         expect(packageJson.scripts["api:check"]).toBeUndefined();
@@ -641,27 +638,27 @@ describe("atlas init bootstrap generated project", () => {
         expect(packageJson.dependencies).toBeUndefined();
         expect(JSON.stringify(packageJson)).not.toContain("workspace:");
         expect(packageJson.devDependencies?.["@atlas/cli"]).toBeUndefined();
-        expect(packageJson.devDependencies?.["@blitzcraftlabs/atlas"]).toBeUndefined();
+        expect(packageJson.devDependencies?.["@blitzcraftlabs/atlas"]).toBe(manifest.atlasVersion);
         expect(packageJson.devDependencies?.["@atlas/project"]).toBeUndefined();
 
         const readme = readFileSync(path.join(destination, "README.md"), "utf8");
         expect(readme).toContain(`generated from Atlas ${manifest.atlasVersion}`);
         expect(readme).toContain("pnpm install");
         expect(readme).toContain("pnpm dev");
-        expect(readme).toContain(`pnpm dlx @blitzcraftlabs/atlas@${manifest.atlasVersion} doctor`);
+        expect(readme).toContain("pnpm atlas doctor");
         expect(readme).toContain(".github/workflows/ci.yml");
-        expect(readme).not.toContain("pnpm dlx @blitzcraftlabs/atlas doctor");
+        expect(readme).not.toContain(
+          `pnpm dlx @blitzcraftlabs/atlas@${manifest.atlasVersion} doctor`
+        );
         expect(readme).not.toContain("pnpm atlas -- doctor");
-        expect(readme).not.toContain("pnpm atlas");
+        expect(readme).toContain("pnpm atlas");
         expect(readme).not.toContain("publication path is finalized");
         expect(readme).not.toContain("Enterprise frontend platform monorepo");
 
         const agents = readFileSync(path.join(destination, "AGENTS.md"), "utf8");
-        expect(agents).toContain(
-          `pnpm dlx @blitzcraftlabs/atlas@${manifest.atlasVersion} context --json`
-        );
-        expect(agents).toContain(`${atlasDlxForEnable(manifest.atlasVersion)} enable list --json`);
-        expect(agents).not.toContain("pnpm atlas");
+        expect(agents).toContain("pnpm atlas context --json");
+        expect(agents).toContain("pnpm atlas enable list --json");
+        expect(agents).not.toContain("pnpm dlx @blitzcraftlabs/atlas@");
         expect(agents).not.toContain("pnpm --filter @blitzcraftlabs/atlas build");
         expect(agents).not.toContain("packages/cli");
         expect(existsSync(path.join(destination, "docs/how-we-build/consumer-tooling.md"))).toBe(

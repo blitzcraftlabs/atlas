@@ -82,6 +82,42 @@ describe("upgrade path evolution", () => {
     expect(marker?.conflict).toBe(false);
   });
 
+  it("skips a newly introduced synced path that already matches the target release", () => {
+    const targetMarker = "export const platformMarker = () => '0.2.0';\n";
+    const plan = planUpgrade({
+      applicationRoot: "apps/web",
+      baselineAtlasVersion: "0.1.0",
+      targetAtlasVersion: "0.2.0",
+      baselineChecksums,
+      sourceSyncedPaths,
+      sourceGeneratedPaths: [],
+      sourceIndependentPaths: [],
+      syncedPaths: targetSyncedPaths,
+      generatedPaths: [],
+      independentPaths: [],
+      sourceSnapshot: { syncedPaths: SOURCE_SNAPSHOT },
+      targetSnapshot: {
+        syncedPaths: {
+          ...SOURCE_SNAPSHOT,
+          "src/lib/api/platform-marker.ts": targetMarker,
+        },
+      },
+      consumerFiles: {
+        ...SOURCE_SNAPSHOT,
+        "src/lib/api/platform-marker.ts": targetMarker,
+      },
+      migrationChain: FIXTURE_MIGRATION_REGISTRY.resolveChain("0.1.0", "0.2.0").migrations,
+    });
+
+    const marker = plan.items.find(
+      (item) => item.relativePath === "src/lib/api/platform-marker.ts"
+    );
+    expect(marker?.action).toBe("skip");
+    expect(marker?.category).toBe("patch-safe");
+    expect(marker?.conflict).toBe(false);
+    expect(plan.hasBlockingConflicts).toBe(false);
+  });
+
   it("plans manual review when a new synced path already exists in the consumer", () => {
     const plan = planUpgrade({
       applicationRoot: "apps/web",
@@ -140,6 +176,39 @@ describe("upgrade path evolution", () => {
 
     const removed = plan.items.find((item) => item.relativePath === "src/lib/api/legacy-stub.ts");
     expect(removed?.action).toBe("remove");
+    expect(removed?.conflict).toBe(false);
+  });
+
+  it("skips a removed synced path that is already absent", () => {
+    const plan = planUpgrade({
+      applicationRoot: "apps/web",
+      baselineAtlasVersion: "0.1.0",
+      targetAtlasVersion: "0.2.0",
+      baselineChecksums,
+      sourceSyncedPaths,
+      sourceGeneratedPaths: [],
+      sourceIndependentPaths: [],
+      syncedPaths: targetSyncedPaths,
+      generatedPaths: [],
+      independentPaths: [],
+      sourceSnapshot: { syncedPaths: SOURCE_SNAPSHOT },
+      targetSnapshot: {
+        syncedPaths: {
+          ...SOURCE_SNAPSHOT,
+          "src/lib/api/platform-marker.ts": "export const platformMarker = () => '0.2.0';\n",
+        },
+      },
+      consumerFiles: {
+        "src/lib/api/client.ts": SOURCE_SNAPSHOT["src/lib/api/client.ts"]!,
+        "src/lib/api/errors.ts": SOURCE_SNAPSHOT["src/lib/api/errors.ts"]!,
+        "src/lib/auth/session.ts": SOURCE_SNAPSHOT["src/lib/auth/session.ts"]!,
+      },
+      migrationChain: FIXTURE_MIGRATION_REGISTRY.resolveChain("0.1.0", "0.2.0").migrations,
+    });
+
+    const removed = plan.items.find((item) => item.relativePath === "src/lib/api/legacy-stub.ts");
+    expect(removed?.action).toBe("skip");
+    expect(removed?.category).toBe("patch-safe");
     expect(removed?.conflict).toBe(false);
   });
 

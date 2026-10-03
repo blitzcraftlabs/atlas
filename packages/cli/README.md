@@ -13,8 +13,12 @@ source inside Atlas and generated projects. They are not published to npm.
 pnpm dlx @blitzcraftlabs/atlas init my-app
 cd my-app
 pnpm install
+pnpm atlas doctor
 pnpm dev
 ```
+
+`pnpm dlx` bootstraps a new repository. After init, the project pins `@blitzcraftlabs/atlas` and the
+normal command is `pnpm atlas`.
 
 Requires Node.js `>=22` and pnpm `>=10`.
 
@@ -52,25 +56,27 @@ independent npm products.
 atlas init my-app
 atlas doctor
 atlas generate feature users --query --mutation --form
-atlas generate page settings/profile
-atlas context --json
-atlas enable list --json
-atlas upgrade --to <version> --dry-run --json
+pnpm atlas doctor
+pnpm atlas context --json
+pnpm atlas enable list --json
+pnpm atlas upgrade --dry-run
+pnpm atlas upgrade
 ```
 
-| Command                        | Purpose                                                            |
-| ------------------------------ | ------------------------------------------------------------------ |
-| `atlas init <project>`         | Create a source-owned Atlas project from packaged bootstrap assets |
-| `atlas doctor`                 | Check Atlas contract and architecture drift                        |
-| `atlas generate feature\|page` | Scaffold structural product surfaces                               |
-| `atlas context [--json]`       | Resolve the executable project contract for agents                 |
-| `atlas enable <id>`            | Opt in to Storybook, coverage, hooks, Docker, and other tooling    |
-| `atlas upgrade --to <version>` | Plan or apply a supported Atlas upgrade                            |
+Inside a generated project those commands use the pinned CLI. `pnpm dlx @blitzcraftlabs/atlas init`
+is only for creating the repository.
 
-Published npm 1.1.0 does **not** include `atlas enable`. This command ships in the next CLI release.
-Until that version is assigned, pin `pnpm dlx @blitzcraftlabs/atlas@<next-cli-release> enable …`.
-That CLI may differ from a consumer's recorded platform baseline. `atlas upgrade` does not install
-optional tooling.
+| Command                        | Purpose                                                                    |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| `atlas init <project>`         | Create a source-owned Atlas project from packaged bootstrap assets         |
+| `atlas doctor`                 | Check Atlas contract and architecture drift                                |
+| `atlas generate feature\|page` | Scaffold structural product surfaces                                       |
+| `atlas context [--json]`       | Resolve the executable project contract for agents                         |
+| `atlas enable <id>`            | Opt in to Storybook, coverage, hooks, Docker, and other tooling            |
+| `pnpm atlas upgrade`           | Plan or apply an upgrade to the latest stable release, or `--to <version>` |
+
+`atlas enable` is part of the pinned local CLI. Historical npm 1.1.0 did not include it.
+`atlas upgrade` does not install optional tooling.
 
 Selected supported flags:
 

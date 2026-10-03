@@ -87,9 +87,7 @@ describe("atlas context CLI", () => {
     ]);
     expect(context.commands.doctor.checkIds).toContain("project-contract");
     expect(context.commands.upgrade.dryRunJsonSupported).toBe(true);
-    expect(context.commands.upgrade.decisionSource).toBe(
-      "atlas upgrade --to <version> --dry-run --json"
-    );
+    expect(context.commands.upgrade.decisionSource).toBe("pnpm atlas upgrade --dry-run --json");
     expect(context.commands.upgrade.resultStatusField).toBe("status");
     expect(context.commands.upgrade.planItemConflictField).toBe("conflict");
     expect(context.validation.recommended.some((entry) => entry.id === "lint")).toBe(true);

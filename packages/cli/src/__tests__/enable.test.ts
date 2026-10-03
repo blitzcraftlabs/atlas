@@ -154,16 +154,12 @@ describe("atlas enable", () => {
         expect(agentsAction?.kind).toBe("copy");
         const updated = readFileSync(path.join(destination, "AGENTS.md"), "utf8");
         expect(updated).toContain("enable list --json");
-        expect(updated).toContain(
-          `pnpm dlx @blitzcraftlabs/atlas@${CONSUMER_BASELINE_WITHOUT_ENABLE} doctor`
-        );
-        expect(updated).toContain(
-          `pnpm dlx @blitzcraftlabs/atlas@${ENABLE_CLI_RELEASE_PLACEHOLDER} enable list --json`
-        );
+        expect(updated).toContain("pnpm atlas doctor");
+        expect(updated).toContain("pnpm atlas enable list --json");
         expect(updated).not.toContain(
           `pnpm dlx @blitzcraftlabs/atlas@${CONSUMER_BASELINE_WITHOUT_ENABLE} enable`
         );
-        expect(updated).not.toContain("pnpm atlas");
+        expect(updated).not.toContain(`@${ENABLE_CLI_RELEASE_PLACEHOLDER}`);
 
         writeFileSync(path.join(destination, "AGENTS.md"), "# Custom agent notes\n");
         const preserved = enableConsumerCapability({
@@ -364,15 +360,10 @@ describe("atlas enable", () => {
           runningCliVersion: CLI_WITHOUT_ENABLE,
         });
         const agents = files.find((file) => file.destination === "AGENTS.md");
-        expect(agents?.content).toContain(
-          `pnpm dlx @blitzcraftlabs/atlas@${CONSUMER_BASELINE_WITHOUT_ENABLE} doctor`
-        );
-        expect(agents?.content).toContain(
-          `pnpm dlx @blitzcraftlabs/atlas@${CONSUMER_BASELINE_WITHOUT_ENABLE} context --json`
-        );
-        expect(agents?.content).toContain(
-          `pnpm dlx @blitzcraftlabs/atlas@${ENABLE_CLI_RELEASE_PLACEHOLDER} enable list --json`
-        );
+        expect(agents?.content).toContain("pnpm atlas doctor");
+        expect(agents?.content).toContain("pnpm atlas context --json");
+        expect(agents?.content).toContain("pnpm atlas enable list --json");
+        expect(agents?.content).not.toContain(ENABLE_CLI_RELEASE_PLACEHOLDER);
         expect(agents?.content).not.toContain(
           `pnpm dlx @blitzcraftlabs/atlas@${CONSUMER_BASELINE_WITHOUT_ENABLE} enable`
         );
@@ -399,15 +390,9 @@ describe("atlas enable", () => {
           runningCliVersion: CLI_WITH_ENABLE,
         });
         const agents = files.find((file) => file.destination === "AGENTS.md");
-        expect(agents?.content).toContain(
-          `pnpm dlx @blitzcraftlabs/atlas@${CONSUMER_BASELINE_WITHOUT_ENABLE} doctor`
-        );
-        expect(agents?.content).toContain(
-          `pnpm dlx @blitzcraftlabs/atlas@${CONSUMER_BASELINE_WITHOUT_ENABLE} context --json`
-        );
-        expect(agents?.content).toContain(
-          `pnpm dlx @blitzcraftlabs/atlas@${CLI_WITH_ENABLE} enable list --json`
-        );
+        expect(agents?.content).toContain("pnpm atlas doctor");
+        expect(agents?.content).toContain("pnpm atlas context --json");
+        expect(agents?.content).toContain("pnpm atlas enable list --json");
         expect(agents?.content).not.toContain(ENABLE_CLI_RELEASE_PLACEHOLDER);
 
         const applied = enableConsumerCapability({
@@ -417,12 +402,8 @@ describe("atlas enable", () => {
         });
         expect(applied.actions.find((action) => action.path === "AGENTS.md")?.kind).toBe("copy");
         const updated = readFileSync(path.join(destination, "AGENTS.md"), "utf8");
-        expect(updated).toContain(
-          `pnpm dlx @blitzcraftlabs/atlas@${CONSUMER_BASELINE_WITHOUT_ENABLE} doctor`
-        );
-        expect(updated).toContain(
-          `pnpm dlx @blitzcraftlabs/atlas@${CLI_WITH_ENABLE} enable list --json`
-        );
+        expect(updated).toContain("pnpm atlas doctor");
+        expect(updated).toContain("pnpm atlas enable list --json");
         expect(updated).not.toContain(ENABLE_CLI_RELEASE_PLACEHOLDER);
       } finally {
         rmSync(cwd, { recursive: true, force: true });
@@ -582,8 +563,8 @@ describe("atlas enable", () => {
         path.join(destination, ".cursor/rules/atlas-core.mdc"),
         "utf8"
       );
-      expect(cursorRule).toContain("enable list --json");
-      expect(cursorRule).not.toContain("pnpm atlas");
+      expect(cursorRule).toContain("pnpm atlas enable list --json");
+      expect(cursorRule).not.toContain("pnpm dlx @blitzcraftlabs/atlas@");
 
       writeFileSync(path.join(destination, "docker-compose.yml"), "name: customized\n");
       const dockerAgain = enableConsumerCapability({ cwd: destination, capability: "docker" });

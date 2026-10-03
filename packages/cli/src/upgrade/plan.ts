@@ -134,6 +134,18 @@ function planExistingSyncedPath(options: {
     };
   }
 
+  if (options.consumerContent === options.targetContent) {
+    return {
+      relativePath: options.relativePath,
+      ownershipChannel: "atlas-managed-template",
+      category: "patch-safe",
+      action: "skip",
+      message: `Consumer path ${options.relativePath} already matches the target Atlas release; preserve it and adopt it when the upgrade completes.`,
+      conflict: false,
+      baselineStatus,
+    };
+  }
+
   if (baselineStatus === "unknown") {
     return {
       relativePath: options.relativePath,
@@ -202,6 +214,17 @@ function planNewSyncedPath(options: {
       category: "patch-safe",
       action: "create",
       message: `Atlas ${options.targetAtlasVersion} introduced synced path ${options.relativePath}. The consumer copy is absent and can be created from the target release.`,
+      conflict: false,
+    };
+  }
+
+  if (options.consumerContent === options.targetContent) {
+    return {
+      relativePath: options.relativePath,
+      ownershipChannel: "atlas-managed-template",
+      category: "patch-safe",
+      action: "skip",
+      message: `Consumer path ${options.relativePath} already matches the target Atlas release; preserve it and adopt it when the upgrade completes.`,
       conflict: false,
     };
   }

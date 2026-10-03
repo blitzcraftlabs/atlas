@@ -518,21 +518,26 @@ Plan and apply supported Atlas release upgrades using `platform.baseline` checks
 **package-owned** production release snapshots from the installed `@blitzcraftlabs/atlas` CLI.
 
 ```bash
-atlas upgrade --to 1.0.0 --dry-run
-atlas upgrade --to 1.0.0
-atlas upgrade --to 1.0.0 --json
+pnpm atlas upgrade --dry-run
+pnpm atlas upgrade
+pnpm atlas upgrade --to 1.3.0
+pnpm atlas upgrade --to 1.3.0 --json
 ```
 
-`--releases-dir` is an explicit fixture/maintainer override. Normal installed-package usage does not
-read a consumer `releases/` tree. Missing packaged evidence fails closed.
+Consumers run these through the pinned `pnpm atlas` script. Omitting `--to` resolves the latest
+stable published `@blitzcraftlabs/atlas` release and, when that release is not the running CLI,
+hands the operation to that exact package. `--to` remains an exact override. `--releases-dir` is an
+explicit fixture/maintainer override. Normal installed-package usage does not read a consumer
+`releases/` tree. Missing packaged evidence fails closed.
 
-The 1.0 support window is the current Atlas release plus the immediately previous supported
-production release (adjacent upgrades only). After `1.0.0` that window is `0.5.0` → `1.0.0`.
-Repository `releases/0.1.0` and `releases/0.2.0` are rehearsal-only and are not public support.
+Supported sources are adjacent **published** releases, not neighboring snapshot directories. An
+unpublished snapshot is never a consumer upgrade source. The release that repairs the unpublished
+`1.2.3` snapshot also accepts published `1.2.2` consumers. Repository `releases/0.1.0` and
+`releases/0.2.0` are rehearsal-only and are not public support.
 
 | Option              | Description                                                                  |
 | ------------------- | ---------------------------------------------------------------------------- |
-| `--to <version>`    | Target Atlas release version (required)                                      |
+| `--to <version>`    | Exact Atlas release. Omit to use the latest stable published release         |
 | `--dry-run`         | Full planning path without filesystem mutations                              |
 | `--json`            | Machine-readable plan and result on stdout                                   |
 | `--allow-dirty`     | Allow mutations when the Git worktree has uncommitted changes                |

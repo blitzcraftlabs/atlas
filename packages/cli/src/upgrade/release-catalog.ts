@@ -9,8 +9,9 @@ import {
   REHEARSAL_ONLY_ATLAS_VERSIONS,
   RELEASE_CATALOG_FILENAME,
   RELEASE_CATALOG_SCHEMA_VERSION,
+  STRANDED_PUBLISHED_RELEASE_BRIDGES,
 } from "./release-constants";
-import { compareAtlasVersions } from "./version-compare";
+import { compareAtlasVersions, isExactAtlasReleaseVersion } from "./version-compare";
 
 export interface ProductionReleaseCatalog {
   schemaVersion: typeof RELEASE_CATALOG_SCHEMA_VERSION;
@@ -18,6 +19,13 @@ export interface ProductionReleaseCatalog {
   current: string;
   supportedVersions: string[];
   rehearsalOnlyVersions: string[];
+  /** Published sources included beyond the normal previous release so a stranded cohort can recover. */
+  recoverySources: string[];
+}
+
+export interface SupportedReleaseWindow {
+  supportedVersions: string[];
+  recoverySources: string[];
 }
 
 export function isRehearsalOnlyAtlasVersion(version: string): boolean {
@@ -29,39 +37,177 @@ export function sortAtlasVersions(versions: string[]): string[] {
 }
 
 /**
- * Current Atlas release plus the immediately previous production snapshot, when one exists.
- * Adjacent upgrades only. Rehearsal versions are never eligible.
+ * Current release plus the previous version in the ordered sequence of published releases
+ * that also have snapshots. Unpublished snapshot directories are ignored. A declared recovery
+ * bridge can add stranded published sources on the first packaged release after a faulty catalog.
  */
-export function selectSupportedReleaseWindow(
-  currentVersion: string,
-  availableVersions: string[]
-): string[] {
-  const available = sortAtlasVersions(
-    [...new Set(availableVersions)].filter((version) => !isRehearsalOnlyAtlasVersion(version))
-  );
-
-  if (!available.includes(currentVersion)) {
+export function selectSupportedReleaseWindow(options: {
+  currentVersion: string;
+  snapshotVersions: string[];
+  publishedVersions: string[];
+}): SupportedReleaseWindow {
+  if (!isExactAtlasReleaseVersion(options.currentVersion)) {
     throw new CliError(
       CliErrorCode.UPGRADE_PREREQUISITE,
-      `Production release catalog cannot include Atlas ${currentVersion} because no production snapshot exists for that version.`
+      `Production release catalog current version must be an exact X.Y.Z release, received ${JSON.stringify(options.currentVersion)}.`
     );
   }
 
-  const previous = [...available]
-    .filter((version) => compareAtlasVersions(version, currentVersion) < 0)
-    .at(-1);
+  const snapshots = new Set(
+    options.snapshotVersions.filter((version) => isExactAtlasReleaseVersion(version))
+  );
+  const published = new Set(
+    options.publishedVersions.filter(
+      (version) => isExactAtlasReleaseVersion(version) && !isRehearsalOnlyAtlasVersion(version)
+    )
+  );
 
-  return previous ? [previous, currentVersion] : [currentVersion];
+  if (!snapshots.has(options.currentVersion)) {
+    throw new CliError(
+      CliErrorCode.UPGRADE_PREREQUISITE,
+      `Production release catalog cannot include Atlas ${options.currentVersion} because no production snapshot exists for that version.`
+    );
+  }
+
+  const predecessors = sortAtlasVersions(
+    [...snapshots].filter(
+      (version) =>
+        published.has(version) &&
+        !isRehearsalOnlyAtlasVersion(version) &&
+        compareAtlasVersions(version, options.currentVersion) < 0
+    )
+  );
+  const previous = predecessors.at(-1);
+  const supported = new Set<string>(
+    previous ? [previous, options.currentVersion] : [options.currentVersion]
+  );
+  const recoverySources: string[] = [];
+
+  for (const bridge of STRANDED_PUBLISHED_RELEASE_BRIDGES) {
+    if (
+      !isImmediatePackagedSuccessor(
+        options.currentVersion,
+        bridge.faultyRelease,
+        snapshots,
+        published
+      )
+    ) {
+      continue;
+    }
+
+    for (const source of bridge.strandedSources) {
+      if (isRehearsalOnlyAtlasVersion(source) || !isExactAtlasReleaseVersion(source)) {
+        throw new CliError(
+          CliErrorCode.UPGRADE_PREREQUISITE,
+          `Recovery bridge ${bridge.id} cannot add ${source} as production upgrade support.`
+        );
+      }
+      if (!published.has(source)) {
+        throw new CliError(
+          CliErrorCode.UPGRADE_PREREQUISITE,
+          `Recovery bridge ${bridge.id} source ${source} is not a verified published release.`
+        );
+      }
+      if (!snapshots.has(source)) {
+        throw new CliError(
+          CliErrorCode.UPGRADE_PREREQUISITE,
+          `Recovery bridge ${bridge.id} source ${source} has no production snapshot.`
+        );
+      }
+      if (compareAtlasVersions(source, options.currentVersion) >= 0 || supported.has(source)) {
+        continue;
+      }
+      supported.add(source);
+      recoverySources.push(source);
+    }
+  }
+
+  return {
+    supportedVersions: sortAtlasVersions([...supported]),
+    recoverySources: sortAtlasVersions(recoverySources),
+  };
+}
+
+function isImmediatePackagedSuccessor(
+  currentVersion: string,
+  faultyRelease: string,
+  snapshots: Set<string>,
+  published: Set<string>
+): boolean {
+  if (
+    !isExactAtlasReleaseVersion(currentVersion) ||
+    !isExactAtlasReleaseVersion(faultyRelease) ||
+    compareAtlasVersions(currentVersion, faultyRelease) <= 0
+  ) {
+    return false;
+  }
+
+  for (const version of snapshots) {
+    if (!published.has(version) || isRehearsalOnlyAtlasVersion(version)) {
+      continue;
+    }
+    if (
+      compareAtlasVersions(version, faultyRelease) > 0 &&
+      compareAtlasVersions(version, currentVersion) < 0
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function assertUpgradeCatalogMatchesPublishedIdentity(options: {
+  catalog: Pick<ProductionReleaseCatalog, "current" | "supportedVersions">;
+  snapshotVersions: string[];
+  publishedVersions: string[];
+}): void {
+  const expected = selectSupportedReleaseWindow({
+    currentVersion: options.catalog.current,
+    snapshotVersions: options.snapshotVersions,
+    publishedVersions: options.publishedVersions,
+  });
+
+  if (!sameVersionList(options.catalog.supportedVersions, expected.supportedVersions)) {
+    throw new CliError(
+      CliErrorCode.UPGRADE_PREREQUISITE,
+      `Refusing to publish an invalid upgrade catalog. Packaged support is ${options.catalog.supportedVersions.join(", ") || "(empty)"}, but published-release adjacency is ${expected.supportedVersions.join(", ")}.`
+    );
+  }
+
+  for (const version of options.catalog.supportedVersions) {
+    if (version === options.catalog.current) {
+      continue;
+    }
+    if (!options.publishedVersions.includes(version)) {
+      throw new CliError(
+        CliErrorCode.UPGRADE_PREREQUISITE,
+        `Supported predecessor ${version} has no verified public release identity. Unpublished snapshots cannot be consumer upgrade sources.`
+      );
+    }
+  }
+}
+
+function sameVersionList(left: string[], right: string[]): boolean {
+  const sortedLeft = sortAtlasVersions(left);
+  const sortedRight = sortAtlasVersions(right);
+  return (
+    sortedLeft.length === sortedRight.length &&
+    sortedLeft.every((version, index) => version === sortedRight[index])
+  );
 }
 
 export function buildProductionReleaseCatalog(options: {
   currentVersion: string;
-  availableVersions: string[];
+  snapshotVersions: string[];
+  publishedVersions: string[];
 }): ProductionReleaseCatalog {
-  const supportedVersions = selectSupportedReleaseWindow(
-    options.currentVersion,
-    options.availableVersions
-  );
+  const window = selectSupportedReleaseWindow({
+    currentVersion: options.currentVersion,
+    snapshotVersions: options.snapshotVersions,
+    publishedVersions: options.publishedVersions,
+  });
+  const supportedVersions = window.supportedVersions;
 
   for (const version of supportedVersions) {
     if (isRehearsalOnlyAtlasVersion(version)) {
@@ -78,6 +224,7 @@ export function buildProductionReleaseCatalog(options: {
     current: options.currentVersion,
     supportedVersions,
     rehearsalOnlyVersions: [...REHEARSAL_ONLY_ATLAS_VERSIONS],
+    recoverySources: window.recoverySources,
   };
 }
 
@@ -122,6 +269,10 @@ export function parseProductionReleaseCatalog(
     "rehearsalOnlyVersions",
     catalogPath
   );
+  const recoverySources =
+    record.recoverySources === undefined
+      ? []
+      : readVersionArray(record.recoverySources, "recoverySources", catalogPath);
 
   if (!supportedVersions.includes(current)) {
     throw new CliError(
@@ -137,12 +288,20 @@ export function parseProductionReleaseCatalog(
     );
   }
 
+  if (recoverySources.some((version) => !supportedVersions.includes(version))) {
+    throw new CliError(
+      CliErrorCode.UPGRADE_PREREQUISITE,
+      `Packaged release catalog recoverySources must be included in supportedVersions.`
+    );
+  }
+
   return {
     schemaVersion: RELEASE_CATALOG_SCHEMA_VERSION,
     policy: PRODUCTION_RELEASE_SUPPORT_POLICY,
     current,
     supportedVersions: sortAtlasVersions(supportedVersions),
     rehearsalOnlyVersions,
+    recoverySources: sortAtlasVersions(recoverySources),
   };
 }
 
@@ -172,14 +331,14 @@ export function formatUnsupportedSourceReleaseMessage(
   sourceVersion: string,
   catalog: ProductionReleaseCatalog
 ): string {
-  return `Unsupported source Atlas release ${sourceVersion}. ${CLI_PACKAGE_NAME} supports adjacent upgrades among: ${formatSupportedVersions(catalog)}. Rehearsal snapshots ${REHEARSAL_ONLY_ATLAS_VERSIONS.join("/")} are not production support.`;
+  return `Unsupported source Atlas release ${sourceVersion}. ${CLI_PACKAGE_NAME} supports adjacent published releases among: ${formatSupportedVersions(catalog)}. Rehearsal snapshots ${REHEARSAL_ONLY_ATLAS_VERSIONS.join("/")} are not production support.`;
 }
 
 export function formatUnsupportedTargetReleaseMessage(
   targetVersion: string,
   catalog: ProductionReleaseCatalog
 ): string {
-  return `Unsupported target Atlas release ${targetVersion}. ${CLI_PACKAGE_NAME} supports adjacent upgrades among: ${formatSupportedVersions(catalog)}. Rehearsal snapshots ${REHEARSAL_ONLY_ATLAS_VERSIONS.join("/")} are not production support.`;
+  return `Unsupported target Atlas release ${targetVersion}. ${CLI_PACKAGE_NAME} supports adjacent published releases among: ${formatSupportedVersions(catalog)}. Rehearsal snapshots ${REHEARSAL_ONLY_ATLAS_VERSIONS.join("/")} are not production support.`;
 }
 
 export function catalogSupportsVersion(

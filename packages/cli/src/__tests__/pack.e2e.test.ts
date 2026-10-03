@@ -270,7 +270,7 @@ describe("Atlas CLI pack and clean-room install", () => {
       packedBootstrapFilePath(CONSUMER_CI_WORKFLOW_DESTINATION)
     );
     expect(consumerCi).toContain("runs-on: ubuntu-latest");
-    expect(consumerCi).toContain(`pnpm dlx @blitzcraftlabs/atlas@${cliVersion} doctor`);
+    expect(consumerCi).toContain("pnpm atlas doctor");
     expect(consumerCi).toContain("pnpm install --frozen-lockfile");
     expect(consumerCi).toMatch(/^\s+run: pnpm lint$/m);
     expect(consumerCi).toMatch(/^\s+run: pnpm typecheck$/m);
@@ -540,7 +540,7 @@ process.stdout.write(JSON.stringify({
         "utf8"
       );
       expect(generatedCi).toContain("runs-on: ubuntu-latest");
-      expect(generatedCi).toContain(`pnpm dlx @blitzcraftlabs/atlas@${cliVersion} doctor`);
+      expect(generatedCi).toContain("pnpm atlas doctor");
       for (const marker of MAINTAINER_CI_LEAK_MARKERS) {
         expect(generatedCi).not.toContain(marker);
       }
@@ -560,7 +560,7 @@ process.stdout.write(JSON.stringify({
       expect(generatedPackage.version).toBe("0.1.0");
       expect(generatedPackage.version).not.toBe(cliVersion);
       expect(generatedPackage.scripts["api:gen"]).toBe("pnpm --filter @atlas/web api:gen");
-      expect(generatedPackage.scripts.atlas).toBeUndefined();
+      expect(generatedPackage.scripts.atlas).toBe("atlas");
       expect(generatedPackage.scripts["template:check"]).toBeUndefined();
       expect(generatedPackage.scripts["template:sync"]).toBeUndefined();
       expect(generatedPackage.scripts["api:check"]).toBeUndefined();
@@ -568,15 +568,16 @@ process.stdout.write(JSON.stringify({
       const generatedReadme = readFileSync(path.join(generatedRoot, "README.md"), "utf8");
       expect(generatedReadme).toContain("pnpm install");
       expect(generatedReadme).toContain("pnpm dev");
-      expect(generatedReadme).toContain(`pnpm dlx @blitzcraftlabs/atlas@${cliVersion} doctor`);
-      expect(generatedReadme).not.toContain("pnpm dlx @blitzcraftlabs/atlas doctor");
+      expect(generatedReadme).toContain("pnpm atlas doctor");
+      expect(generatedReadme).toContain("pnpm dlx @blitzcraftlabs/atlas init");
+      expect(generatedReadme).not.toContain(`pnpm dlx @blitzcraftlabs/atlas@${cliVersion} doctor`);
       expect(generatedReadme).not.toContain("pnpm atlas -- doctor");
       expect(generatedReadme).not.toContain("publication path is finalized");
 
       expect(init.stdout).toContain("pnpm install");
       expect(init.stdout).toContain("pnpm dev");
-      expect(init.stdout).toContain(`pnpm dlx @blitzcraftlabs/atlas@${cliVersion} doctor`);
-      expect(init.stdout).not.toContain("pnpm dlx @blitzcraftlabs/atlas doctor");
+      expect(init.stdout).toContain("pnpm atlas doctor");
+      expect(init.stdout).not.toContain(`pnpm dlx @blitzcraftlabs/atlas@${cliVersion} doctor`);
       expect(init.stdout).not.toContain("pnpm atlas -- doctor");
       expect(init.stdout).not.toContain("publication path is finalized");
 
@@ -604,10 +605,8 @@ process.stdout.write(JSON.stringify({
       ).toBe(false);
 
       const generatedAgents = readFileSync(path.join(generatedRoot, "AGENTS.md"), "utf8");
-      expect(generatedAgents).toContain(
-        `pnpm dlx @blitzcraftlabs/atlas@${cliVersion} context --json`
-      );
-      expect(generatedAgents).not.toContain("pnpm atlas");
+      expect(generatedAgents).toContain("pnpm atlas context --json");
+      expect(generatedAgents).not.toContain("pnpm dlx @blitzcraftlabs/atlas@");
       expect(generatedAgents).not.toContain("pnpm --filter @blitzcraftlabs/atlas build");
 
       const shippedLighthouse = readFileSync(
@@ -815,7 +814,7 @@ process.stdout.write(JSON.stringify({ root, catalog }));
       );
       expect(unsupported.status).not.toBe(0);
       expect(`${unsupported.stdout}\n${unsupported.stderr}`).toMatch(
-        /Unsupported target Atlas release 9\.9\.9/
+        /Unsupported target Atlas release 9\.9\.9|No matching version found for @blitzcraftlabs\/atlas@9\.9\.9/
       );
     },
     PACK_TIMEOUT_MS

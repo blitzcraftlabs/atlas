@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -171,6 +171,43 @@ describe("repository-level Docker upgrade planning", () => {
     const dockerfile = plan.items.find((item) => item.relativePath === "Dockerfile");
     expect(dockerfile?.action).toBe("skip");
     expect(dockerfile?.conflict).toBe(false);
+    expect(plan.hasBlockingConflicts).toBe(false);
+  });
+
+  it("adopts an existing repository path that already equals a changed target", () => {
+    const plan = planUpgrade({
+      applicationRoot: "apps/web",
+      baselineAtlasVersion: "9.1.0",
+      targetAtlasVersion: "9.2.0",
+      baselineChecksums,
+      baselineRepositoryChecksums: {
+        Dockerfile: computeBaselineChecksum(DOCKERFILE_V1),
+      },
+      sourceSyncedPaths: ["src/lib/api/errors.ts"],
+      sourceGeneratedPaths: [],
+      sourceIndependentPaths: [],
+      syncedPaths: ["src/lib/api/errors.ts"],
+      generatedPaths: [],
+      independentPaths: [],
+      sourceRepositorySyncedPaths: ["Dockerfile"],
+      repositorySyncedPaths: ["Dockerfile"],
+      sourceSnapshot: {
+        syncedPaths: { "src/lib/api/errors.ts": ERRORS_SOURCE },
+        repositorySyncedPaths: { Dockerfile: DOCKERFILE_V1 },
+      },
+      targetSnapshot: {
+        syncedPaths: { "src/lib/api/errors.ts": ERRORS_TARGET },
+        repositorySyncedPaths: { Dockerfile: DOCKERFILE_V2 },
+      },
+      consumerFiles: { "src/lib/api/errors.ts": ERRORS_SOURCE },
+      consumerRepositoryFiles: { Dockerfile: DOCKERFILE_V2 },
+    });
+
+    const dockerfile = plan.items.find((item) => item.relativePath === "Dockerfile");
+    expect(dockerfile?.action).toBe("skip");
+    expect(dockerfile?.category).toBe("patch-safe");
+    expect(dockerfile?.conflict).toBe(false);
+    expect(dockerfile?.baselineStatus).toBe("modified");
     expect(plan.hasBlockingConflicts).toBe(false);
   });
 
@@ -366,6 +403,82 @@ describe("repository-level Docker upgrade apply", () => {
     expect(contract.platform.baseline.repositorySyncedPathChecksums?.Dockerfile).toBe(
       computeBaselineChecksum(DOCKERFILE_V2)
     );
+
+    rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  it("resumes when a repository synced path was already replaced before install failed", async () => {
+    const tempRoot = mkdtempSync(path.join(os.tmpdir(), "atlas-repo-docker-retry-"));
+    const releasesDir = path.join(tempRoot, "releases");
+    writeRelease({
+      releasesDir,
+      version: "9.1.0",
+      errors: ERRORS_SOURCE,
+      repositoryFiles: { Dockerfile: DOCKERFILE_V1 },
+    });
+    writeRelease({
+      releasesDir,
+      version: "9.2.0",
+      errors: ERRORS_TARGET,
+      repositoryFiles: { Dockerfile: DOCKERFILE_V2 },
+    });
+    writeConsumer({
+      repoRoot: tempRoot,
+      atlasVersion: "9.1.0",
+      errors: ERRORS_SOURCE,
+      repositoryFiles: { Dockerfile: DOCKERFILE_V1 },
+      repositoryChecksums: { Dockerfile: computeBaselineChecksum(DOCKERFILE_V1) },
+    });
+
+    const failed = await runUpgrade({
+      repoRoot: tempRoot,
+      targetVersion: "9.2.0",
+      allowDirty: true,
+      skipValidation: true,
+      installDependencies: true,
+      installDependenciesRunner: () => ({
+        status: "failed",
+        message: "pnpm install failed",
+      }),
+      releasesDir,
+      migrationRegistry: PRODUCTION_MIGRATION_REGISTRY,
+    });
+
+    expect(failed.status).toBe("validation-failed");
+    expect(failed.baselineUpdated).toBe(false);
+    expect(readFileSync(path.join(tempRoot, "Dockerfile"), "utf8")).toBe(DOCKERFILE_V2);
+    const baselineAfterFailure = JSON.parse(
+      readFileSync(path.join(tempRoot, "atlas.config.json"), "utf8")
+    ) as { platform: { baseline: { atlasVersion: string } } };
+    expect(baselineAfterFailure.platform.baseline.atlasVersion).toBe("9.1.0");
+
+    const dockerfileMtime = statSync(path.join(tempRoot, "Dockerfile")).mtimeMs;
+    const resumed = await runUpgrade({
+      repoRoot: tempRoot,
+      targetVersion: "9.2.0",
+      allowDirty: true,
+      skipValidation: true,
+      installDependencies: true,
+      installDependenciesRunner: () => ({
+        status: "passed",
+        message: "pnpm install completed",
+      }),
+      releasesDir,
+      migrationRegistry: PRODUCTION_MIGRATION_REGISTRY,
+    });
+
+    expect(resumed.status).toBe("success");
+    expect(resumed.baselineUpdated).toBe(true);
+    const dockerfile = resumed.items.find((item) => item.relativePath === "Dockerfile");
+    expect(dockerfile?.action).toBe("skip");
+    expect(dockerfile?.category).toBe("patch-safe");
+    expect(dockerfile?.conflict).toBe(false);
+    expect(statSync(path.join(tempRoot, "Dockerfile")).mtimeMs).toBe(dockerfileMtime);
+    expect(readFileSync(path.join(tempRoot, "Dockerfile"), "utf8")).toBe(DOCKERFILE_V2);
+    const contract = JSON.parse(readFileSync(path.join(tempRoot, "atlas.config.json"), "utf8")) as {
+      platform: { baseline: { atlasVersion: string } };
+    };
+    expect(contract.platform.baseline.atlasVersion).toBe("9.2.0");
 
     rmSync(tempRoot, { recursive: true, force: true });
   });

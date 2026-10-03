@@ -82,6 +82,21 @@ export function planPackageUpdates(options: {
       continue;
     }
 
+    if (currentVersion !== null && currentVersion === targetVersion) {
+      items.push({
+        relativePath: packageName,
+        ownershipChannel: "versioned-package",
+        category: "patch-safe",
+        action: "skip",
+        message: `${packageName} is already at the target Atlas release ${targetVersion}; preserve it and adopt it when the upgrade completes.`,
+        conflict: false,
+        securityCritical: false,
+        sourceVersion: sourceVersion ?? currentVersion,
+        targetVersion,
+      });
+      continue;
+    }
+
     if (currentVersion !== null && sourceVersion && currentVersion !== sourceVersion) {
       items.push({
         relativePath: packageName,

@@ -1,3 +1,20 @@
+/** Exact stable release. Rejects prerelease, build metadata, ranges, and shell metacharacters. */
+const EXACT_ATLAS_RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+
+export function isExactAtlasReleaseVersion(version: string): boolean {
+  return EXACT_ATLAS_RELEASE_VERSION.test(version);
+}
+
+export function assertExactAtlasReleaseVersion(version: string, label = "Atlas version"): string {
+  if (!isExactAtlasReleaseVersion(version)) {
+    throw new Error(
+      `${label} must be an exact X.Y.Z release, received ${JSON.stringify(version)}.`
+    );
+  }
+
+  return version;
+}
+
 /** Compare Atlas SemVer strings without external dependencies. */
 export function compareAtlasVersions(left: string, right: string): -1 | 0 | 1 {
   const leftParts = parseAtlasVersion(left);

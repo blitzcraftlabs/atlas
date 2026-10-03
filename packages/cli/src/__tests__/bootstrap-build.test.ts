@@ -314,12 +314,14 @@ describe("bootstrap asset build", () => {
         expect(
           packaged.entries.some((entry) => entry.destination === CONSUMER_CI_WORKFLOW_DESTINATION)
         ).toBe(true);
-        expect(sourceWorkflow).toContain(CONSUMER_CI_ATLAS_VERSION_PLACEHOLDER);
+        expect(sourceWorkflow).toContain("pnpm atlas doctor");
+        expect(sourceWorkflow).not.toContain(CONSUMER_CI_ATLAS_VERSION_PLACEHOLDER);
         expect(packagedWorkflow).toBe(toConsumerCiWorkflow(sourceWorkflow, atlasVersion));
+        expect(packagedWorkflow).toContain("pnpm atlas doctor");
         expect(packagedWorkflow).not.toBe(maintainerWorkflow);
         expect(maintainerWorkflow).toContain("ATLAS_CI_RUNNER_PROFILE");
         expect(packagedWorkflow).toContain("runs-on: ubuntu-latest");
-        expect(packagedWorkflow).toContain(`pnpm dlx @blitzcraftlabs/atlas@${atlasVersion} doctor`);
+        expect(packagedWorkflow).not.toContain("pnpm dlx @blitzcraftlabs/atlas@");
         expect(packagedWorkflow).toMatch(/^\s+run: pnpm lint$/m);
         expect(packagedWorkflow).toMatch(/^\s+run: pnpm typecheck$/m);
         expect(packagedWorkflow).toMatch(/^\s+run: pnpm test$/m);

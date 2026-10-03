@@ -400,6 +400,14 @@ export function assertPostUpgradeReleaseIdentity(options) {
       `Post-upgrade root package.json version is ${String(rootPackage.version)}, expected ${currentManifest.atlasVersion}`
     );
   }
+  if (rootPackage.scripts?.atlas !== "atlas") {
+    issues.push("Post-upgrade root package.json is missing the atlas script");
+  }
+  if (rootPackage.devDependencies?.["@blitzcraftlabs/atlas"] !== currentManifest.atlasVersion) {
+    issues.push(
+      `Post-upgrade @blitzcraftlabs/atlas pin is ${String(rootPackage.devDependencies?.["@blitzcraftlabs/atlas"])}, expected ${currentManifest.atlasVersion}`
+    );
+  }
 
   for (const manifestPath of listGeneratedWorkspaceManifests(options.consumerRoot)) {
     const manifest = readJson(manifestPath, manifestPath);

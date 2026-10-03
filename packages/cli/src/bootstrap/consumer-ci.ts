@@ -13,10 +13,13 @@ export function toConsumerCiWorkflow(source: string, atlasVersion: string): stri
   if (typeof atlasVersion !== "string" || atlasVersion.trim().length === 0) {
     throw new BootstrapAssetError("Consumer CI workflow requires a non-empty Atlas CLI version.");
   }
-  if (!source.includes(CONSUMER_CI_ATLAS_VERSION_PLACEHOLDER)) {
+  if (source.includes("pnpm dlx @blitzcraftlabs/atlas@")) {
     throw new BootstrapAssetError(
-      `Consumer CI workflow is missing ${CONSUMER_CI_ATLAS_VERSION_PLACEHOLDER}.`
+      "Consumer CI must use the pinned local CLI (`pnpm atlas`), not a versioned pnpm dlx invocation."
     );
+  }
+  if (!source.includes(CONSUMER_CI_ATLAS_VERSION_PLACEHOLDER)) {
+    return source;
   }
 
   const rendered = source.replaceAll(CONSUMER_CI_ATLAS_VERSION_PLACEHOLDER, atlasVersion);

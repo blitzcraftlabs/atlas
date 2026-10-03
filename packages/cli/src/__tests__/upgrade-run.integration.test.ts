@@ -1,8 +1,17 @@
-import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { parseAtlasProjectContract } from "@atlas/project";
+import { computeBaselineChecksum, parseAtlasProjectContract } from "@atlas/project";
 
 import { createDoctorContext } from "../doctor/context";
 import { DoctorDiagnosticCode } from "../doctor/diagnostics";
@@ -384,6 +393,330 @@ describe("upgrade package semantics", () => {
 
     expect(result.status).toBe("success");
     expect(result.items.some((item) => item.relativePath === "@atlas/ui")).toBe(false);
+
+    rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  it("does not advance baseline when dependency installation fails", async () => {
+    const tempRoot = copyFixtureToTemp();
+    const contractPath = path.join(tempRoot, "atlas.config.json");
+    const baselineBefore = JSON.parse(readFileSync(contractPath, "utf8")).platform.baseline
+      .atlasVersion;
+
+    const result = await runUpgrade({
+      repoRoot: tempRoot,
+      targetVersion: "0.2.0",
+      allowDirty: true,
+      skipValidation: true,
+      installDependencies: true,
+      installDependenciesRunner: () => ({
+        status: "failed",
+        message: "pnpm install failed",
+      }),
+      ...fixtureOptions(tempRoot),
+    });
+
+    expect(result.status).toBe("validation-failed");
+    expect(result.baselineUpdated).toBe(false);
+    expect(result.dependencyInstall).toBe("failed");
+    expect(JSON.parse(readFileSync(contractPath, "utf8")).platform.baseline.atlasVersion).toBe(
+      baselineBefore
+    );
+    rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  it("does not advance baseline when post-upgrade doctor fails", async () => {
+    const tempRoot = copyFixtureToTemp();
+    jest.spyOn(doctorModule, "runDoctor").mockResolvedValue({
+      schemaVersion: 1,
+      status: "failed",
+      atlasVersion: "0.2.0",
+      projectRoot: ".",
+      summary: {
+        checksPassed: 0,
+        checksWarned: 0,
+        checksFailed: 1,
+        checksSkipped: 0,
+        diagnosticWarnings: 0,
+        diagnosticErrors: 1,
+      },
+      checks: [],
+      diagnostics: [],
+    });
+
+    const result = await runUpgrade({
+      repoRoot: tempRoot,
+      targetVersion: "0.2.0",
+      allowDirty: true,
+      ...fixtureOptions(tempRoot),
+    });
+
+    expect(result.status).toBe("validation-failed");
+    expect(result.baselineUpdated).toBe(false);
+    expect(result.validation.doctor).toBe("failed");
+    rmSync(tempRoot, { recursive: true, force: true });
+  });
+});
+
+const RESUMABLE_CHANGED_PATH = "src/lib/api/errors.ts";
+const RESUMABLE_SECURITY_PATH = "src/lib/auth/session.ts";
+const RESUMABLE_NEW_PATH = "src/lib/api/platform-marker.ts";
+const RESUMABLE_REMOVED_PATH = "src/lib/api/legacy-stub.ts";
+
+function releaseFile(tempRoot: string, version: string, relativePath: string): string {
+  return readFileSync(path.join(tempRoot, "releases", version, "apps/web", relativePath), "utf8");
+}
+
+function appFile(tempRoot: string, relativePath: string): string {
+  return path.join(tempRoot, "apps/web", relativePath);
+}
+
+function readBaselineVersion(tempRoot: string): string {
+  return JSON.parse(readFileSync(path.join(tempRoot, "atlas.config.json"), "utf8")).platform
+    .baseline.atlasVersion as string;
+}
+
+function healthyDoctorReport() {
+  return {
+    schemaVersion: 1 as const,
+    status: "healthy" as const,
+    atlasVersion: "0.2.0",
+    projectRoot: ".",
+    summary: {
+      checksPassed: 1,
+      checksWarned: 0,
+      checksFailed: 0,
+      checksSkipped: 0,
+      diagnosticWarnings: 0,
+      diagnosticErrors: 0,
+    },
+    checks: [],
+    diagnostics: [],
+  };
+}
+
+function failedDoctorReport() {
+  return {
+    ...healthyDoctorReport(),
+    status: "failed" as const,
+    summary: {
+      checksPassed: 0,
+      checksWarned: 0,
+      checksFailed: 1,
+      checksSkipped: 0,
+      diagnosticWarnings: 0,
+      diagnosticErrors: 1,
+    },
+  };
+}
+
+describe("upgrade retry after a partial apply", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("resumes after dependency installation fails without treating target files as conflicts", async () => {
+    const tempRoot = copyFixtureToTemp();
+    const targetErrors = releaseFile(tempRoot, "0.2.0", RESUMABLE_CHANGED_PATH);
+    const targetSession = releaseFile(tempRoot, "0.2.0", RESUMABLE_SECURITY_PATH);
+    const targetMarker = releaseFile(tempRoot, "0.2.0", RESUMABLE_NEW_PATH);
+    const changedPath = appFile(tempRoot, RESUMABLE_CHANGED_PATH);
+    const securityPath = appFile(tempRoot, RESUMABLE_SECURITY_PATH);
+    const newPath = appFile(tempRoot, RESUMABLE_NEW_PATH);
+    const removedPath = appFile(tempRoot, RESUMABLE_REMOVED_PATH);
+
+    const failed = await runUpgrade({
+      repoRoot: tempRoot,
+      targetVersion: "0.2.0",
+      allowDirty: true,
+      installDependencies: true,
+      installDependenciesRunner: () => ({
+        status: "failed",
+        message: "pnpm install failed",
+      }),
+      ...fixtureOptions(tempRoot),
+    });
+
+    expect(failed.status).toBe("validation-failed");
+    expect(failed.baselineUpdated).toBe(false);
+    expect(failed.dependencyInstall).toBe("failed");
+    expect(readBaselineVersion(tempRoot)).toBe("0.1.0");
+    expect(readFileSync(changedPath, "utf8")).toBe(targetErrors);
+    expect(readFileSync(securityPath, "utf8")).toBe(targetSession);
+    expect(readFileSync(newPath, "utf8")).toBe(targetMarker);
+    expect(existsSync(removedPath)).toBe(false);
+
+    const changedMtime = statSync(changedPath).mtimeMs;
+    const securityMtime = statSync(securityPath).mtimeMs;
+    const newMtime = statSync(newPath).mtimeMs;
+    jest.spyOn(doctorModule, "runDoctor").mockResolvedValue(healthyDoctorReport());
+
+    const resumed = await runUpgrade({
+      repoRoot: tempRoot,
+      targetVersion: "0.2.0",
+      allowDirty: true,
+      installDependencies: true,
+      installDependenciesRunner: () => ({
+        status: "passed",
+        message: "pnpm install completed",
+      }),
+      ...fixtureOptions(tempRoot),
+    });
+
+    expect(resumed.status).toBe("success");
+    expect(resumed.validation.doctor).toBe("passed");
+    expect(resumed.baselineUpdated).toBe(true);
+    expect(readBaselineVersion(tempRoot)).toBe("0.2.0");
+
+    for (const relativePath of [
+      RESUMABLE_CHANGED_PATH,
+      RESUMABLE_SECURITY_PATH,
+      RESUMABLE_NEW_PATH,
+      RESUMABLE_REMOVED_PATH,
+    ]) {
+      const item = resumed.items.find((entry) => entry.relativePath === relativePath);
+      expect(item).toEqual(
+        expect.objectContaining({
+          category: "patch-safe",
+          action: "skip",
+          conflict: false,
+        })
+      );
+      expect(resumed.conflicts.some((entry) => entry.relativePath === relativePath)).toBe(false);
+    }
+
+    expect(resumed.items.find((entry) => entry.relativePath === "@atlas/ui")).toEqual(
+      expect.objectContaining({
+        category: "patch-safe",
+        action: "skip",
+        conflict: false,
+      })
+    );
+    expect(statSync(changedPath).mtimeMs).toBe(changedMtime);
+    expect(statSync(securityPath).mtimeMs).toBe(securityMtime);
+    expect(statSync(newPath).mtimeMs).toBe(newMtime);
+    expect(readFileSync(changedPath, "utf8")).toBe(targetErrors);
+    expect(readFileSync(securityPath, "utf8")).toBe(targetSession);
+    expect(readFileSync(newPath, "utf8")).toBe(targetMarker);
+    expect(existsSync(removedPath)).toBe(false);
+
+    const contract = JSON.parse(readFileSync(path.join(tempRoot, "atlas.config.json"), "utf8"));
+    expect(contract.platform.baseline.syncedPathChecksums[RESUMABLE_CHANGED_PATH]).toBe(
+      computeBaselineChecksum(targetErrors)
+    );
+    expect(contract.platform.baseline.syncedPathChecksums[RESUMABLE_NEW_PATH]).toBe(
+      computeBaselineChecksum(targetMarker)
+    );
+    expect(contract.platform.baseline.syncedPathChecksums[RESUMABLE_REMOVED_PATH]).toBeUndefined();
+
+    rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  it("resumes after Doctor fails without rewriting files that already match the target", async () => {
+    const tempRoot = copyFixtureToTemp();
+    const targetErrors = releaseFile(tempRoot, "0.2.0", RESUMABLE_CHANGED_PATH);
+    const targetMarker = releaseFile(tempRoot, "0.2.0", RESUMABLE_NEW_PATH);
+    const changedPath = appFile(tempRoot, RESUMABLE_CHANGED_PATH);
+    const newPath = appFile(tempRoot, RESUMABLE_NEW_PATH);
+    const doctorSpy = jest.spyOn(doctorModule, "runDoctor").mockResolvedValue(failedDoctorReport());
+
+    const failed = await runUpgrade({
+      repoRoot: tempRoot,
+      targetVersion: "0.2.0",
+      allowDirty: true,
+      installDependencies: true,
+      installDependenciesRunner: () => ({
+        status: "passed",
+        message: "pnpm install completed",
+      }),
+      ...fixtureOptions(tempRoot),
+    });
+
+    expect(failed.status).toBe("validation-failed");
+    expect(failed.validation.doctor).toBe("failed");
+    expect(failed.dependencyInstall).toBe("passed");
+    expect(failed.baselineUpdated).toBe(false);
+    expect(readBaselineVersion(tempRoot)).toBe("0.1.0");
+    expect(readFileSync(changedPath, "utf8")).toBe(targetErrors);
+    expect(readFileSync(newPath, "utf8")).toBe(targetMarker);
+
+    const changedMtime = statSync(changedPath).mtimeMs;
+    const newMtime = statSync(newPath).mtimeMs;
+    doctorSpy.mockResolvedValue(healthyDoctorReport());
+
+    const resumed = await runUpgrade({
+      repoRoot: tempRoot,
+      targetVersion: "0.2.0",
+      allowDirty: true,
+      installDependencies: true,
+      installDependenciesRunner: () => ({
+        status: "passed",
+        message: "pnpm install completed",
+      }),
+      ...fixtureOptions(tempRoot),
+    });
+
+    expect(resumed.status).toBe("success");
+    expect(resumed.validation.doctor).toBe("passed");
+    expect(resumed.baselineUpdated).toBe(true);
+    expect(readBaselineVersion(tempRoot)).toBe("0.2.0");
+    expect(resumed.conflicts).toEqual([]);
+    for (const relativePath of [RESUMABLE_CHANGED_PATH, RESUMABLE_NEW_PATH]) {
+      expect(resumed.items.find((entry) => entry.relativePath === relativePath)).toEqual(
+        expect.objectContaining({
+          category: "patch-safe",
+          action: "skip",
+          conflict: false,
+        })
+      );
+    }
+    expect(statSync(changedPath).mtimeMs).toBe(changedMtime);
+    expect(statSync(newPath).mtimeMs).toBe(newMtime);
+    expect(readFileSync(changedPath, "utf8")).toBe(targetErrors);
+    expect(readFileSync(newPath, "utf8")).toBe(targetMarker);
+
+    rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  it("still blocks a real consumer modification that matches neither source nor target", async () => {
+    const tempRoot = copyFixtureToTemp();
+    const changedPath = appFile(tempRoot, RESUMABLE_CHANGED_PATH);
+    const newPath = appFile(tempRoot, RESUMABLE_NEW_PATH);
+    const consumerErrors = 'export const normalize = () => "consumer-edit";\n';
+    const consumerMarker = 'export const platformMarker = () => "consumer";\n';
+    writeFileSync(changedPath, consumerErrors);
+    mkdirSync(path.dirname(newPath), { recursive: true });
+    writeFileSync(newPath, consumerMarker);
+
+    const result = await runUpgrade({
+      repoRoot: tempRoot,
+      targetVersion: "0.2.0",
+      allowDirty: true,
+      skipValidation: true,
+      ...fixtureOptions(tempRoot),
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.baselineUpdated).toBe(false);
+    expect(readBaselineVersion(tempRoot)).toBe("0.1.0");
+    expect(result.items.find((entry) => entry.relativePath === RESUMABLE_CHANGED_PATH)).toEqual(
+      expect.objectContaining({
+        category: "merge-required",
+        action: "manual-review",
+        conflict: true,
+        baselineStatus: "modified",
+      })
+    );
+    expect(result.items.find((entry) => entry.relativePath === RESUMABLE_NEW_PATH)).toEqual(
+      expect.objectContaining({
+        category: "merge-required",
+        action: "manual-review",
+        conflict: true,
+      })
+    );
+    expect(readFileSync(changedPath, "utf8")).toBe(consumerErrors);
+    expect(readFileSync(newPath, "utf8")).toBe(consumerMarker);
+    expect(result.appliedPaths).toEqual([]);
 
     rmSync(tempRoot, { recursive: true, force: true });
   });

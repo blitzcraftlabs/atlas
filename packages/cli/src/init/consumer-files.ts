@@ -10,8 +10,6 @@ import {
 
 import { CONSUMER_GENERATED_DOCUMENTATION_PATHS } from "../context/documentation-registry";
 
-import { atlasDlx, atlasDlxForEnable } from "./cli-release";
-
 import type { PlannedAction } from "../types/result";
 import type { EnvPolicy } from "./types";
 
@@ -35,6 +33,7 @@ export function buildConsumerPackageManifest(options: {
 }): string {
   const scripts: Record<string, string> = {
     preinstall: "node scripts/ensure-pnpm.js",
+    atlas: "atlas",
     dev: "turbo run dev",
     build: "turbo run build",
     lint: "turbo run lint",
@@ -69,7 +68,10 @@ export function buildConsumerPackageManifest(options: {
     },
     packageManager: CONSUMER_PACKAGE_MANAGER,
     scripts,
-    devDependencies: CONSUMER_ROOT_DEV_DEPENDENCIES,
+    devDependencies: {
+      "@blitzcraftlabs/atlas": options.atlasVersion,
+      ...CONSUMER_ROOT_DEV_DEPENDENCIES,
+    },
     ...(options.pnpmOverrides && Object.keys(options.pnpmOverrides).length > 0
       ? { pnpm: { overrides: options.pnpmOverrides } }
       : {}),
@@ -98,23 +100,29 @@ pnpm dev
 
 ## Atlas CLI
 
-Generated projects do not include an \`atlas\` package script. Pin the published CLI:
+This project pins \`@blitzcraftlabs/atlas\` at the generated baseline and exposes it as \`pnpm atlas\`.
+Ordinary commands use that local CLI. They do not download a floating \`@latest\` package.
 
 \`\`\`bash
-${atlasDlx(options.atlasVersion)} doctor
-${atlasDlx(options.atlasVersion)} context --json
-${atlasDlx(options.atlasVersion)} generate list --json
-${atlasDlx(options.atlasVersion)} upgrade --to <version> --dry-run --json
-${atlasDlxForEnable(options.atlasVersion, { runningCliVersion: options.runningCliVersion })} enable list --json
+pnpm install
+pnpm atlas doctor
+pnpm atlas context --json
+pnpm atlas generate list --json
+pnpm atlas enable list --json
+pnpm atlas upgrade --dry-run
+pnpm atlas upgrade
 \`\`\`
+
+Create a new project before this repository exists with \`pnpm dlx @blitzcraftlabs/atlas init <name>\`.
+After init, stay on \`pnpm atlas\`.
+
+\`atlas upgrade\` resolves the latest stable release when \`--to\` is omitted and hands the operation
+to that exact CLI. \`--to <version>\` remains the deterministic override.
 
 Optional Storybook, visual tests, performance CI, security auditing, Dependabot, coverage floors,
 Git hooks, Cursor adapters, and Docker Compose are **opt-in**. See
-\`docs/how-we-build/consumer-tooling.md\`. Enablement does not overwrite customized files.
-
-Published Atlas 1.1.0 does **not** include \`atlas enable\`. Invoke a CLI release that contains the
-command; that CLI version may differ from \`platform.baseline.atlasVersion\`. \`atlas upgrade\`
-does not install optional tooling.
+\`docs/how-we-build/consumer-tooling.md\`. Enable them with \`pnpm atlas enable\`. Enablement does
+not overwrite customized files, and \`atlas upgrade\` does not install optional tooling.
 
 Existing apps generated from an older CLI should run \`enable docs\` only against a known unmodified
 shipped \`AGENTS.md\` copy. Customized agent docs are left untouched.
