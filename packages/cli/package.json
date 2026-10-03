@@ -1,6 +1,6 @@
 {
   "name": "@blitzcraftlabs/atlas",
-  "version": "1.2.4",
+  "version": "1.3.0",
   "license": "Apache-2.0",
   "description": "Source-owned frontend platform CLI for Next.js — bootstrap, diagnose, generate, inspect, and upgrade Atlas applications.",
   "keywords": [

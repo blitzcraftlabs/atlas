@@ -1,5 +1,17 @@
 # @atlas/project
 
+## 1.3.0
+
+### Minor Changes
+
+- f322df1: Fresh Atlas projects pin `@blitzcraftlabs/atlas` to the exact generated version and use
+  `pnpm atlas` for Doctor, context, generate, enable, and upgrade. `atlas upgrade` can resolve the
+  latest stable published release when `--to` is omitted, then hands the operation to that exact
+  CLI. Upgrade support follows published releases instead of unpublished snapshot directories, and
+  this release keeps a supported path for consumers stranded on Atlas 1.2.2. If install or Doctor
+  fails after Atlas has written the target files, rerunning that same upgrade adopts content that
+  already matches the target release instead of treating it as a consumer conflict.
+
 ## 1.2.4
 
 ### Patch Changes
