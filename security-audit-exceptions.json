@@ -27,6 +27,15 @@
       "compensatingControl": "CLI/dev-only. The GHSA requires untrusted prefix/postfix/dir options; Atlas and these tools use library-controlled temp names, not attacker-supplied tmp options. Not present in production application bundles or server runtime.",
       "reviewedOn": "2026-08-29",
       "expiresOn": "2026-11-27"
+    },
+    {
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "packageName": "braces",
+      "owner": "@atlas-maintainers",
+      "reason": "braces@3.0.3 is transitive only through dev/build tooling (micromatch → fast-glob/chokidar on changesets, ESLint, Storybook, and similar). npm reports no patched braces line (patched_versions <0.0.0).",
+      "compensatingControl": "Dev/CI glob expansion uses repository-controlled patterns, not attacker-supplied brace sequences. braces is not shipped in production Next.js bundles or runtime request handling.",
+      "reviewedOn": "2026-10-03",
+      "expiresOn": "2027-01-01"
     }
   ]
 }
