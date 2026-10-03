@@ -120,6 +120,87 @@ describe("upgrade baseline safety", () => {
     expect(item?.conflict).toBe(true);
   });
 
+  it("skips an existing synced path that already matches the target release", () => {
+    const targetErrors = targetSnapshot.syncedPaths["src/lib/api/errors.ts"]!;
+    const plan = planUpgrade({
+      applicationRoot: "apps/web",
+      baselineAtlasVersion: "0.1.0",
+      targetAtlasVersion: "0.2.0",
+      baselineChecksums,
+      sourceSyncedPaths: ["src/lib/api/errors.ts"],
+      sourceGeneratedPaths: [],
+      sourceIndependentPaths: [],
+      syncedPaths: ["src/lib/api/errors.ts"],
+      generatedPaths: [],
+      independentPaths: [],
+      sourceSnapshot: { syncedPaths: SOURCE },
+      targetSnapshot,
+      consumerFiles: {
+        "src/lib/api/errors.ts": targetErrors,
+      },
+    });
+
+    const item = plan.items.find((entry) => entry.relativePath === "src/lib/api/errors.ts");
+    expect(item?.action).toBe("skip");
+    expect(item?.category).toBe("patch-safe");
+    expect(item?.conflict).toBe(false);
+    expect(item?.baselineStatus).toBe("modified");
+    expect(plan.hasBlockingConflicts).toBe(false);
+  });
+
+  it("skips an existing synced path that matches the target when baseline evidence is missing", () => {
+    const targetErrors = targetSnapshot.syncedPaths["src/lib/api/errors.ts"]!;
+    const plan = planUpgrade({
+      applicationRoot: "apps/web",
+      baselineAtlasVersion: "0.1.0",
+      targetAtlasVersion: "0.2.0",
+      baselineChecksums: {},
+      sourceSyncedPaths: ["src/lib/api/errors.ts"],
+      sourceGeneratedPaths: [],
+      sourceIndependentPaths: [],
+      syncedPaths: ["src/lib/api/errors.ts"],
+      generatedPaths: [],
+      independentPaths: [],
+      sourceSnapshot: { syncedPaths: SOURCE },
+      targetSnapshot,
+      consumerFiles: {
+        "src/lib/api/errors.ts": targetErrors,
+      },
+    });
+
+    const item = plan.items.find((entry) => entry.relativePath === "src/lib/api/errors.ts");
+    expect(item?.action).toBe("skip");
+    expect(item?.category).toBe("patch-safe");
+    expect(item?.conflict).toBe(false);
+    expect(item?.baselineStatus).toBe("unknown");
+  });
+
+  it("still requires merge when an existing synced path matches neither source nor target", () => {
+    const plan = planUpgrade({
+      applicationRoot: "apps/web",
+      baselineAtlasVersion: "0.1.0",
+      targetAtlasVersion: "0.2.0",
+      baselineChecksums,
+      sourceSyncedPaths: ["src/lib/api/errors.ts"],
+      sourceGeneratedPaths: [],
+      sourceIndependentPaths: [],
+      syncedPaths: ["src/lib/api/errors.ts"],
+      generatedPaths: [],
+      independentPaths: [],
+      sourceSnapshot: { syncedPaths: SOURCE },
+      targetSnapshot,
+      consumerFiles: {
+        "src/lib/api/errors.ts": "export const normalize = () => 'consumer-edit';\n",
+      },
+    });
+
+    const item = plan.items.find((entry) => entry.relativePath === "src/lib/api/errors.ts");
+    expect(item?.action).toBe("manual-review");
+    expect(item?.category).toBe("merge-required");
+    expect(item?.conflict).toBe(true);
+    expect(item?.baselineStatus).toBe("modified");
+  });
+
   it("requires manual review when consumer file is missing", () => {
     const plan = planUpgrade({
       applicationRoot: "apps/web",

@@ -174,11 +174,19 @@ upgrade plan (patch-safe | merge-required | migration-required | manual)
    missing manifest synced paths fail baseline recording rather than producing incomplete evidence.
 2. **Before any synced-path write**, compare consumer checksum to baseline checksum.
 3. **Equal** (proven unchanged) → consumer has not edited since baseline → safe replace allowed.
-4. **Unequal** (proven modified) → `merge-required` → emit deterministic conflict; do not write.
-5. **Missing/invalid baseline checksum or missing consumer file** → `unknown` evidence → manual
-   review; do not write.
-6. **Independent paths** → never auto-written regardless of checksum.
-7. **Product paths** → out of scope for template upgrade planner.
+4. **Already equal to the target release** → patch-safe skip; do not rewrite. Exact target content
+   is safe even when `platform.baseline` still records the source release, which is what remains
+   when install or Doctor fails after Atlas has written files. The same rule covers an existing
+   synced path, a newly introduced synced path, and a repository-level synced path. A removed path
+   that is already absent is also patch-safe skip.
+5. **Unequal to the baseline and not equal to the target** (proven modified) → `merge-required` →
+   emit deterministic conflict; do not write. A newly introduced path whose existing file is not the
+   exact target content stays merge-required.
+6. **Missing/invalid baseline checksum or missing consumer file** → `unknown` evidence → manual
+   review; do not write. Missing evidence does not override step 4 when the consumer bytes already
+   equal the target release.
+7. **Independent paths** → never auto-written regardless of checksum.
+8. **Product paths** → out of scope for template upgrade planner.
 
 Internal planner: `packages/cli/src/upgrade/plan.ts` (test-only in v0.1). Security-relevant path
 detection in the planner is a **rehearsal heuristic**; canonical security classification belongs to

@@ -709,6 +709,7 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
         baselineUpdated,
         appliedPaths,
         messages,
+        dependencyInstall,
       };
     }
 
@@ -742,6 +743,7 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
         baselineUpdated,
         appliedPaths,
         messages,
+        dependencyInstall,
       };
     }
   }
