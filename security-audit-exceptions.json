@@ -20,15 +20,6 @@
       "expiresOn": "2026-11-27"
     },
     {
-      "advisory": "GHSA-5c6j-r48x-rmvq",
-      "packageName": "serialize-javascript",
-      "owner": "@atlas-maintainers",
-      "reason": "serialize-javascript@6.0.2 is required by terser-webpack-plugin 5.x via @sentry/nextjs's webpack plugin. The first patched release is 7.0.3 (major). Forcing 7.x would ignore terser-webpack-plugin's ^6 range and is not a safe drop-in for this PR.",
-      "compensatingControl": "The vulnerable serialize() path is webpack/terser minification of first-party source during local and CI builds. Atlas does not pass untrusted objects (RegExp.flags / Date) into serialize-javascript. The package is not used as a Next.js request handler or shipped as a browser API.",
-      "reviewedOn": "2026-08-29",
-      "expiresOn": "2026-11-27"
-    },
-    {
       "advisory": "GHSA-ph9p-34f9-6g65",
       "packageName": "tmp",
       "owner": "@atlas-maintainers",
