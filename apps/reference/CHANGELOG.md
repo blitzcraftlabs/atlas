@@ -1,5 +1,16 @@
 # @atlas/reference
 
+## 1.2.4
+
+### Patch Changes
+
+- 37975d1: Upgrade Next.js from 16.3.3 to 16.3.8 so generated consumers can keep
+  `output: "standalone"` when a deployment build adapter is active (fixes missing
+  `.next/next-server.js.nft.json` on Vercel).
+- Updated dependencies [37975d1]
+  - @atlas/ui@1.2.4
+  - @atlas/consent@1.2.4
+
 ## 1.2.3
 
 ### Patch Changes

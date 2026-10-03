@@ -1,6 +1,6 @@
 {
   "name": "@atlas/project",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "private": true,
   "license": "Apache-2.0",
   "description": "Atlas project architecture contract schema and loader",
