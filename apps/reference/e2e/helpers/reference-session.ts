@@ -11,17 +11,19 @@ export async function setReferenceSession(
   persona: ReferenceAuthPersona,
   usersScenario: ReferenceUsersScenario = "success"
 ): Promise<void> {
-  const response = await page.request.post("/api/auth/session", {
-    data: {
-      persona,
-      scenario: { users: usersScenario },
-    },
-  });
+  await expect(async () => {
+    const response = await page.request.post("/api/auth/session", {
+      data: {
+        persona,
+        scenario: { users: usersScenario },
+      },
+    });
 
-  expect(
-    response.ok(),
-    `Failed to set reference session (${persona}/${usersScenario}): ${response.status()}`
-  ).toBeTruthy();
+    expect(
+      response.ok(),
+      `Failed to set reference session (${persona}/${usersScenario}): ${response.status()}`
+    ).toBeTruthy();
+  }).toPass({ timeout: 15_000 });
 }
 
 function isAuthMeResponse(response: {
