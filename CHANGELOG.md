@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.2.4] - 2026-10-03
+
+### Changed
+
+- Upgrade Next.js from 16.3.3 to 16.3.8 so generated consumers can keep `output: "standalone"` when
+  a deployment build adapter is active (fixes missing `.next/next-server.js.nft.json` on Vercel).
+
 ## [1.2.3] - 2026-09-30
 
 ### Changed
@@ -175,7 +182,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Enterprise frontend platform monorepo: `@atlas/web` template app, `@atlas/ui`, `@atlas/config`,
   `@atlas/consent`, conventions, and documentation.
 
-[Unreleased]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.3...HEAD
+[Unreleased]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.4...HEAD
+[1.2.4]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.3...v1.2.4
 [1.2.3]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.0...v1.2.1
