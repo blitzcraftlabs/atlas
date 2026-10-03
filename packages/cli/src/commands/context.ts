@@ -51,7 +51,7 @@ export function formatAgentContextHumanReport(report: AgentContextReport): strin
     `  ${report.invocation.cli} doctor --json`,
     "",
     "Upgrade planning:",
-    `  ${report.invocation.cli} upgrade --to <version> --dry-run --json`,
+    `  ${report.invocation.cli} upgrade --dry-run --json`,
     "",
     "Optional tooling:",
     `  ${report.invocation.enableCli} enable list --json`,

@@ -7,12 +7,12 @@ export interface ConsumerDocVersionOptions extends EnableCliVersionOptions {
   atlasVersion: string;
 }
 
-function cliPair(options: ConsumerDocVersionOptions): { cli: string; enableCli: string } {
+export const CONSUMER_LOCAL_ATLAS_CLI = "pnpm atlas";
+
+function cliPair(_options: ConsumerDocVersionOptions): { cli: string; enableCli: string } {
   return {
-    cli: atlasDlx(options.atlasVersion),
-    enableCli: atlasDlxForEnable(options.atlasVersion, {
-      runningCliVersion: options.runningCliVersion,
-    }),
+    cli: CONSUMER_LOCAL_ATLAS_CLI,
+    enableCli: CONSUMER_LOCAL_ATLAS_CLI,
   };
 }
 
@@ -84,7 +84,7 @@ workspace.
 ## Upgrades and migrations
 
 \`\`\`bash
-${cli} upgrade --to <version> --dry-run --json
+${cli} upgrade --dry-run --json
 \`\`\`
 
 Treat \`merge-required\`, \`manual-review\`, and \`security-critical\` conflicts as blocking for
@@ -104,10 +104,9 @@ ${enableCli} enable storybook --dry-run
 ${enableCli} enable storybook
 \`\`\`
 
-See [consumer tooling](docs/how-we-build/consumer-tooling.md). Published Atlas 1.1.0 does **not**
-include \`atlas enable\`. Invoke a CLI release that contains the command (\`${enableCli}\`); that
-CLI version may differ from \`platform.baseline.atlasVersion\`. \`atlas upgrade\` does not install
-optional tooling. Enablement skips customized files instead of overwriting them.
+See [consumer tooling](docs/how-we-build/consumer-tooling.md). Use the pinned local CLI
+(\`${enableCli} enable\`). \`atlas upgrade\` does not install optional tooling. Enablement skips
+customized files instead of overwriting them.
 
 ---
 
@@ -307,7 +306,7 @@ deterministic and inside authorized change scope.
 ## Upgrade and migration workflow
 
 \`\`\`bash
-${cli} upgrade --to <version> --dry-run --json
+${cli} upgrade --dry-run --json
 \`\`\`
 
 Do not infer blocking from \`category\` alone. The upgrade command decides whether an upgrade is
@@ -329,7 +328,7 @@ See [upgrades.md](upgrades.md) and [consumer-tooling.md](consumer-tooling.md).
 | Resolved project state | \`${cli} context --json\` |
 | Generator inventory | \`${cli} generate list --json\` |
 | Architecture validation | \`${cli} doctor --json\` |
-| Upgrade planning | \`${cli} upgrade --to <version> --dry-run --json\` |
+| Upgrade planning | \`${cli} upgrade --dry-run --json\` |
 | Optional tooling | \`${enableCli} enable list --json\` |
 
 Do not scrape Markdown or CLI help prose for critical structural state when these commands exist.
@@ -544,14 +543,13 @@ matches.
 
 ## Existing-consumer adoption
 
-Published Atlas **1.1.0 does not contain** \`atlas enable\`. Optional tooling is not installed by
-\`atlas upgrade --to 1.1.0\` or any same-version upgrade. Enable commands pin \`${enableCli}\` — a CLI
-release that includes \`enable\`, which may differ from \`platform.baseline.atlasVersion\` used for
-Doctor and generate (\`${cli}\`).
+After \`atlas init\`, the pinned local CLI is \`${cli}\`. Bootstrap a brand-new repository with
+\`pnpm dlx @blitzcraftlabs/atlas init <name>\` before that script exists. Optional tooling is not
+installed by \`atlas upgrade\`. Historical npm \`1.1.0\` did not contain \`atlas enable\`; projects
+created or upgraded by a CLI that includes \`enable\` run it through \`${enableCli}\`.
 
-1. Optionally apply platform upgrades with a supported \`atlas upgrade --to <platform-version>\` using
-   whatever CLI you already use for Doctor. That step does not add Storybook, coverage, or other
-   opt-in files.
+1. Preview and apply platform upgrades with \`${cli} upgrade --dry-run\` and \`${cli} upgrade\`.
+   That step does not add Storybook, coverage, or other opt-in files.
 2. \`${enableCli} enable docs --dry-run --json\` — replace \`AGENTS.md\` (and related workflow docs)
    only when the file is an unmodified copy shipped by a known published CLI. Customized docs and
    any other content are reported as \`conflict\` and left untouched.
@@ -666,7 +664,7 @@ Vendor guidance never overrides the executable contract or Doctor. If this rule 
 ## Workflow
 
 - **Validate** — \`${cli} doctor --json\`, then \`pnpm lint\`, \`pnpm typecheck\`, \`pnpm test\`.
-- **Upgrades** — \`${cli} upgrade --to <version> --dry-run --json\`; do not silently resolve merge-required conflicts.
+- **Upgrades** — \`${cli} upgrade --dry-run --json\`; do not silently resolve merge-required conflicts.
 - **Optional tooling** — \`${enableCli} enable list --json\`; do not copy Atlas maintainer workflows.
 - **Doctor failures** — Auto-fix only deterministic mechanical issues. Do not overwrite consumer-owned files.
 

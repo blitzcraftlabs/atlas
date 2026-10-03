@@ -5,8 +5,9 @@
  * to a maintainer. Never rebuild between validation and publication.
  */
 
-import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
+import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
@@ -569,6 +570,42 @@ export function validatePackedTarball(tarballPath, expected) {
  *   env?: NodeJS.ProcessEnv;
  * }} options
  */
+function queryPublishedCliVersions(cwd) {
+  const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+  const result = spawnSync(pnpm, ["view", PUBLIC_CLI_PACKAGE_NAME, "versions", "--json"], {
+    cwd,
+    encoding: "utf8",
+    shell: false,
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      `Refusing to pack an upgrade catalog without verified published ${PUBLIC_CLI_PACKAGE_NAME} versions.\n${result.stderr || result.stdout || "pnpm view failed"}`
+    );
+  }
+  const parsed = JSON.parse(result.stdout);
+  if (!Array.isArray(parsed) || parsed.some((version) => typeof version !== "string")) {
+    throw new Error("pnpm view versions did not return a string array");
+  }
+  return parsed;
+}
+
+function assertPackedPublishedUpgradeCatalog(packageRoot, catalog, publishedVersions) {
+  const releaseAssets = createRequire(import.meta.url)(
+    path.join(packageRoot, "dist", "upgrade", "release-assets.js")
+  );
+  const catalogApi = createRequire(import.meta.url)(
+    path.join(packageRoot, "dist", "upgrade", "release-catalog.js")
+  );
+  const snapshots = releaseAssets.listProductionSnapshotVersions(
+    releaseAssets.sourceProductionReleasesRoot(packageRoot)
+  );
+  catalogApi.assertUpgradeCatalogMatchesPublishedIdentity({
+    catalog,
+    snapshotVersions: snapshots,
+    publishedVersions,
+  });
+}
+
 export function packExactPublicCliTarball(options) {
   const repoRoot = options.repoRoot;
   assertPrivateInternalWorkspaces(repoRoot);
@@ -640,6 +677,13 @@ export function packExactPublicCliTarball(options) {
     }
 
     const packed = validatePackedTarball(stagedPath, rebuiltIdentity);
+    if (options.verifyPublishedCatalog !== false) {
+      assertPackedPublishedUpgradeCatalog(
+        packageRoot,
+        packed.catalog,
+        options.publishedVersions ?? queryPublishedCliVersions(repoRoot)
+      );
+    }
     assertPublicationIdentity({
       ...rebuiltIdentity,
       catalogCurrent: packed.catalog.current,

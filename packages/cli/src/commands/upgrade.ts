@@ -1,9 +1,25 @@
 import path from "node:path";
 
+import { readAtlasProjectContractFile } from "@atlas/project";
+
 import { CliError, CliErrorCode } from "../errors/cli-error";
 import { writeCommandSuccess } from "../output/write";
 import { resolveRepoRootFromOptions } from "../project/find-root";
+import { readContractPlatformBaseline } from "../upgrade/baseline";
+import {
+  ATLAS_UPGRADE_HANDOFF_ENV,
+  decideUpgradeHandoff,
+  executeUpgradeHandoff,
+  isUpgradeHandoffChild,
+} from "../upgrade/cli-handoff";
+import {
+  type CommandRunner,
+  discoverLatestPublishedRelease,
+  LATEST_RELEASE_DISCOVERY_ERROR,
+} from "../upgrade/release-discovery";
 import { runUpgrade } from "../upgrade/run";
+import { assertExactAtlasReleaseVersion, compareAtlasVersions } from "../upgrade/version-compare";
+import { readCliAtlasVersion } from "../version";
 
 import type { OutputWriter } from "../output/write";
 import type { UpgradeRunResult } from "../upgrade/types";
@@ -17,11 +33,16 @@ export interface UpgradeCommandOptions {
   releasesDir?: string;
   skipValidation?: boolean;
   writer: OutputWriter;
+  runningVersion?: string;
+  env?: NodeJS.ProcessEnv;
+  spawn?: CommandRunner;
+  resolveLatest?: (options: { cwd: string }) => string;
 }
 
 export function formatUpgradeHumanResult(result: UpgradeRunResult): string[] {
   const lines = [
     `Current baseline: ${result.sourceVersion}`,
+    ...(result.latestStable ? [`Latest stable: ${result.latestStable}`] : []),
     `Target: ${result.targetVersion}`,
     `Mode: ${result.mode}`,
     `Status: ${result.status}`,
@@ -99,10 +120,10 @@ export function writeUpgradeHelp(writer: OutputWriter, json: boolean): void {
     "Production release evidence is loaded from the installed @blitzcraftlabs/atlas package.",
     "",
     "Usage:",
-    "  atlas upgrade --to <version> [options]",
+    "  atlas upgrade [--to <version>] [options]",
     "",
     "Options:",
-    "  --to <version>       Target Atlas release version (required)",
+    "  --to <version>       Upgrade to an exact Atlas release (default: latest stable)",
     "  --dry-run            Plan without filesystem mutations",
     "  --json               Emit machine-readable JSON on stdout",
     "  --allow-dirty        Allow mutations on a dirty Git worktree (use with caution)",
@@ -136,26 +157,142 @@ export function writeUpgradeHelp(writer: OutputWriter, json: boolean): void {
 }
 
 export async function runUpgradeCommand(options: UpgradeCommandOptions): Promise<number> {
-  if (!options.targetVersion) {
-    throw new CliError(
-      CliErrorCode.USAGE_ERROR,
-      "Missing required --to <version> target for atlas upgrade."
-    );
-  }
-
   const repoRoot = resolveRepoRootFromOptions({ cwd: options.cwd });
   const releasesDir = options.releasesDir
     ? path.resolve(options.cwd ?? process.cwd(), options.releasesDir)
     : undefined;
+  const contract = readAtlasProjectContractFile(repoRoot);
+  const baseline = readContractPlatformBaseline(contract);
+  if (!baseline) {
+    throw new CliError(
+      CliErrorCode.UPGRADE_PREREQUISITE,
+      "platform.baseline is missing from atlas.config.json. Record a baseline via atlas init before upgrading."
+    );
+  }
+
+  const runningVersion = options.runningVersion ?? readCliAtlasVersion();
+  const env = options.env ?? process.env;
+  const handoffChild = isUpgradeHandoffChild(env);
+  const sourceVersion = baseline.atlasVersion;
+
+  let targetVersion = options.targetVersion;
+  let latestStable: string | undefined;
+  let targetResolution: UpgradeRunResult["targetResolution"];
+
+  if (targetVersion) {
+    try {
+      targetVersion = assertExactAtlasReleaseVersion(targetVersion, "--to");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid --to version.";
+      throw new CliError(CliErrorCode.USAGE_ERROR, message);
+    }
+    targetResolution = "explicit";
+  } else {
+    targetResolution = "latest";
+    try {
+      latestStable = options.resolveLatest
+        ? options.resolveLatest({ cwd: repoRoot })
+        : discoverLatestPublishedRelease({ cwd: repoRoot, spawn: options.spawn, env });
+    } catch (error) {
+      if (error instanceof CliError) {
+        throw error;
+      }
+      const message = error instanceof Error ? error.message : "Registry query failed.";
+      throw new CliError(CliErrorCode.UPGRADE_PREREQUISITE, LATEST_RELEASE_DISCOVERY_ERROR, {
+        details: [message],
+      });
+    }
+    targetVersion = latestStable;
+  }
+
+  if (compareAtlasVersions(sourceVersion, targetVersion) > 0) {
+    throw new CliError(
+      CliErrorCode.UPGRADE_PREREQUISITE,
+      `Downgrade from Atlas ${sourceVersion} to ${targetVersion} is not supported.`
+    );
+  }
+
+  const decision = decideUpgradeHandoff({
+    runningVersion,
+    targetVersion,
+    handoffChild,
+  });
+  if (decision === "refuse-recursion") {
+    throw new CliError(
+      CliErrorCode.UPGRADE_PREREQUISITE,
+      `Refusing to launch another Atlas CLI. This process is already the ${ATLAS_UPGRADE_HANDOFF_ENV} target, but it is Atlas ${runningVersion} rather than ${targetVersion}.`
+    );
+  }
+
+  if (compareAtlasVersions(sourceVersion, targetVersion) === 0) {
+    const result: UpgradeRunResult = {
+      sourceVersion,
+      targetVersion,
+      mode: options.dryRun ? "dry-run" : "apply",
+      status: "already-current",
+      summary: {
+        patchSafe: 0,
+        mergeRequired: 0,
+        migrationRequired: 0,
+        manual: 0,
+        securityCritical: 0,
+        skipped: 0,
+        packageUpdates: 0,
+        regenerations: 0,
+        replacements: 0,
+      },
+      items: [],
+      conflicts: [],
+      migrations: [],
+      validation: { doctor: "skipped", apiGen: "skipped" },
+      baselineUpdated: false,
+      appliedPaths: [],
+      messages: [`Atlas is already current (${sourceVersion}).`],
+      latestStable,
+      targetResolution,
+      dependencyInstall: "not-run",
+    };
+    writeCommandSuccess(
+      options.writer,
+      "upgrade",
+      result,
+      options.json ?? false,
+      formatUpgradeHumanResult
+    );
+    return upgradeExitCodeFromResult(result);
+  }
+
+  if (decision === "handoff" && !releasesDir) {
+    const handoff = executeUpgradeHandoff({
+      request: {
+        repoRoot,
+        targetVersion,
+        dryRun: options.dryRun,
+        json: options.json,
+        allowDirty: options.allowDirty,
+        skipValidation: options.skipValidation,
+        releasesDir,
+      },
+      spawn: options.spawn,
+      env,
+      stdio: options.spawn ? "pipe" : "inherit",
+    });
+    if (handoff.signal && !options.spawn) {
+      process.kill(process.pid, handoff.signal);
+    }
+    return handoff.exitCode;
+  }
 
   const result = await runUpgrade({
     repoRoot,
-    targetVersion: options.targetVersion,
+    targetVersion,
     dryRun: options.dryRun,
     allowDirty: options.allowDirty,
     releasesDir,
     skipValidation: options.skipValidation,
   });
+  result.latestStable = latestStable;
+  result.targetResolution = targetResolution;
 
   writeCommandSuccess(
     options.writer,

@@ -7,7 +7,25 @@ export const SOURCE_PRODUCTION_RELEASES_RELATIVE_PATH = "release-assets/producti
 export const RELEASE_SNAPSHOT_FILENAME = "release.snapshot.json";
 export const RELEASE_CATALOG_FILENAME = "catalog.json";
 export const RELEASE_CATALOG_SCHEMA_VERSION = 1;
-export const PRODUCTION_RELEASE_SUPPORT_POLICY = "adjacent-supported-releases" as const;
+export const PRODUCTION_RELEASE_SUPPORT_POLICY = "adjacent-published-releases" as const;
+
+/** Verified npm publications. Snapshot directories are not publication evidence. */
+export const PUBLISHED_RELEASES_FILENAME = "published-releases.json";
+export const PUBLISHED_RELEASES_SCHEMA_VERSION = 1;
+
+/**
+ * Explicit recovery when a packaged catalog treated an unpublished snapshot as the
+ * previous supported release. The bridge applies only on the first later packaged
+ * release, so stranded published consumers can reach the fix without a fake hop.
+ */
+export const STRANDED_PUBLISHED_RELEASE_BRIDGES = [
+  {
+    id: "unpublished-snapshot-1.2.3",
+    faultyRelease: "1.2.4",
+    unpublishedSnapshots: ["1.2.3"],
+    strandedSources: ["1.2.2"],
+  },
+] as const;
 
 export const DEFAULT_OPENAPI_SPEC_RELATIVE_PATH = "openapi/openapi.json";
 

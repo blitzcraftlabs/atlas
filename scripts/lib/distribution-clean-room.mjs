@@ -914,11 +914,10 @@ export function assertContextReport(contextEnvelope, expectations) {
   if (report.workspaceKind !== "consumer") {
     issues.push(`Context workspaceKind is ${String(report.workspaceKind)}, expected consumer`);
   }
-  if (
-    typeof report?.invocation?.cli !== "string" ||
-    !report.invocation.cli.includes("pnpm dlx @blitzcraftlabs/atlas@")
-  ) {
-    issues.push("Consumer context invocation.cli must be a pinned pnpm dlx command");
+  if (report?.invocation?.cli !== "pnpm atlas") {
+    issues.push(
+      `Consumer context invocation.cli must be the pinned local CLI, got ${String(report?.invocation?.cli)}`
+    );
   }
   if (!Array.isArray(report?.commands?.enable?.capabilityIds) || !report.commands.enable.capabilityIds.includes("storybook")) {
     issues.push("Consumer context must advertise atlas enable capability ids");
@@ -955,11 +954,10 @@ export function assertContextReport(contextEnvelope, expectations) {
     recommended.some(
       (entry) =>
         typeof entry?.command === "string" &&
-        entry.command.includes("pnpm atlas") &&
-        !entry.command.includes("dlx")
+        entry.command.includes("pnpm dlx @blitzcraftlabs/atlas@")
     )
   ) {
-    issues.push("Consumer context still uses unpinned workspace CLI invocations");
+    issues.push("Consumer context still teaches versioned pnpm dlx for ordinary Atlas commands");
   }
 
   issues.push(...collectRepoPathLeaks(report, expectations.repoRoot));

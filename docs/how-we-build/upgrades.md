@@ -304,22 +304,35 @@ Test suite: `packages/cli/src/__tests__/upgrade-historical-rehearsal.test.ts`
 The first npm-distributed Atlas CLI (`@blitzcraftlabs/atlas@1.0.1`, published from canonical
 `v1.0.1`) supports:
 
-| Promise               | Detail                                                                                                        |
-| --------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **We support**        | Adjacent upgrades between the current Atlas release and the immediately previous supported production release |
-| **We support**        | Deterministic conflict detection for synced template infrastructure                                           |
-| **We support**        | Regeneration for generated artifacts                                                                          |
-| **We do not support** | Unlimited historical upgrades, including rehearsal snapshots `0.1.0` / `0.2.0`                                |
-| **We do not support** | Silent overwrite of consumer-modified synced files                                                            |
-| **We do not support** | Perpetual automatic upgrades with zero review                                                                 |
-| Pre-1.0 proving line  | Breaking changes were allowed with changelog + migration docs; they are historical                            |
-| 1.0 public contract   | Breaking public CLI/project/upgrade/distribution contracts require a major version                            |
-| Migration retention   | Best-effort; at least one minor release deprecation notice when practicable                                   |
+| Promise               | Detail                                                                                                                              |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **We support**        | Adjacent upgrades between published Atlas releases that have production snapshots. Unpublished snapshot directories are not support |
+| **We support**        | A one-release recovery bridge when a faulty catalog excluded a real published predecessor                                           |
+| **We support**        | Deterministic conflict detection for synced template infrastructure                                                                 |
+| **We support**        | Regeneration for generated artifacts                                                                                                |
+| **We do not support** | Unlimited historical upgrades, including rehearsal snapshots `0.1.0` / `0.2.0`                                                      |
+| **We do not support** | Silent overwrite of consumer-modified synced files                                                                                  |
+| **We do not support** | Perpetual automatic upgrades with zero review                                                                                       |
+| Pre-1.0 proving line  | Breaking changes were allowed with changelog + migration docs; they are historical                                                  |
+| 1.0 public contract   | Breaking public CLI/project/upgrade/distribution contracts require a major version                                                  |
+| Migration retention   | Best-effort; at least one minor release deprecation notice when practicable                                                         |
 
-Release evidence is **package-owned**. `atlas upgrade --to <version>` loads snapshots from the
-installed `@blitzcraftlabs/atlas` package catalog. `--releases-dir` is an explicit
-fixture/maintainer override. Generated consumers do not carry an Atlas `releases/` tree. Missing or
-corrupt packaged evidence fails closed.
+Release evidence is **package-owned**. `pnpm atlas upgrade` loads snapshots from the target
+`@blitzcraftlabs/atlas` package catalog. The catalog's previous release is the previous
+**published** release, not the previous snapshot directory. `--to <version>` selects an exact
+target. Omitting it resolves the latest stable published release and hands off to that exact CLI.
+`--releases-dir` is an explicit fixture/maintainer override. Generated consumers do not carry an
+Atlas `releases/` tree. Missing or corrupt packaged evidence fails closed. A successful upgrade pins
+`@blitzcraftlabs/atlas` to the target, runs `pnpm install`, validates with Doctor, and only then
+advances `platform.baseline`.
+
+The release that contains published-release adjacency also accepts consumers recorded at Atlas
+**1.2.2**. `1.2.3` has a snapshot directory and a changelog section, but GitHub Release publication
+failed and `@blitzcraftlabs/atlas@1.2.3` was never published. The already published `1.2.4` catalog
+treated that snapshot as the previous supported release, which stranded `1.2.2` consumers. The first
+packaged release after `1.2.4` keeps `1.2.2` in its support window. Invoke that release's CLI once
+(`pnpm dlx @blitzcraftlabs/atlas@<version> upgrade --to <version>`). It pins the local CLI. Later
+upgrades use `pnpm atlas upgrade`.
 
 The canonical `v0.5.0` tag is the previous production baseline for the first public npm CLI. GitHub
 `v1.0.0` is the first stable platform release. The first npm registry version is `1.0.1`. Do not
@@ -372,7 +385,8 @@ migration completion checks, required package update checks, strict target basel
 release identity consistency. Use for fixture/CI isolation only.
 
 **Release identity:** After a successful upgrade, root `package.json` `version` and
-`platform.baseline.atlasVersion` advance together so Doctor's upgrade-baseline check stays coherent.
+`platform.baseline.atlasVersion` advance together. Consumers also pin `@blitzcraftlabs/atlas` to the
+exact target version and install dependencies before that baseline advance. A dry run does neither.
 
 **Explicitly not `atlas upgrade`:** public advisory feed, npm publication.
 

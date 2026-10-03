@@ -387,4 +387,64 @@ describe("upgrade package semantics", () => {
 
     rmSync(tempRoot, { recursive: true, force: true });
   });
+
+  it("does not advance baseline when dependency installation fails", async () => {
+    const tempRoot = copyFixtureToTemp();
+    const contractPath = path.join(tempRoot, "atlas.config.json");
+    const baselineBefore = JSON.parse(readFileSync(contractPath, "utf8")).platform.baseline
+      .atlasVersion;
+
+    const result = await runUpgrade({
+      repoRoot: tempRoot,
+      targetVersion: "0.2.0",
+      allowDirty: true,
+      skipValidation: true,
+      installDependencies: true,
+      installDependenciesRunner: () => ({
+        status: "failed",
+        message: "pnpm install failed",
+      }),
+      ...fixtureOptions(tempRoot),
+    });
+
+    expect(result.status).toBe("validation-failed");
+    expect(result.baselineUpdated).toBe(false);
+    expect(result.dependencyInstall).toBe("failed");
+    expect(JSON.parse(readFileSync(contractPath, "utf8")).platform.baseline.atlasVersion).toBe(
+      baselineBefore
+    );
+    rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  it("does not advance baseline when post-upgrade doctor fails", async () => {
+    const tempRoot = copyFixtureToTemp();
+    jest.spyOn(doctorModule, "runDoctor").mockResolvedValue({
+      schemaVersion: 1,
+      status: "failed",
+      atlasVersion: "0.2.0",
+      projectRoot: ".",
+      summary: {
+        checksPassed: 0,
+        checksWarned: 0,
+        checksFailed: 1,
+        checksSkipped: 0,
+        diagnosticWarnings: 0,
+        diagnosticErrors: 1,
+      },
+      checks: [],
+      diagnostics: [],
+    });
+
+    const result = await runUpgrade({
+      repoRoot: tempRoot,
+      targetVersion: "0.2.0",
+      allowDirty: true,
+      ...fixtureOptions(tempRoot),
+    });
+
+    expect(result.status).toBe("validation-failed");
+    expect(result.baselineUpdated).toBe(false);
+    expect(result.validation.doctor).toBe("failed");
+    rmSync(tempRoot, { recursive: true, force: true });
+  });
 });
