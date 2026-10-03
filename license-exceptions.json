@@ -80,10 +80,10 @@
       "reviewedOn": "2026-08-27",
       "disposition": "accepted"
     },
-    "caniuse-lite@1.0.30001810": {
+    "caniuse-lite@1.0.30001814": {
       "status": "reviewed",
       "reason": "Build-time browserslist data (CC-BY-4.0). Not shipped as Atlas-authored content.",
-      "reviewedOn": "2026-08-27",
+      "reviewedOn": "2026-10-03",
       "disposition": "accepted"
     },
     "lightningcss@1.30.2": {
