@@ -66,6 +66,17 @@ export function formatUpgradeHumanResult(result: UpgradeRunResult): string[] {
     lines.push("");
     lines.push("Plan items:");
     for (const item of result.items) {
+      if (item.manifestChange && item.action !== "skip") {
+        const from = item.manifestChange.sourceValue ?? "(absent)";
+        const to =
+          item.manifestChange.operation === "remove"
+            ? "(removed)"
+            : (item.manifestChange.targetValue ?? "(absent)");
+        lines.push(`  - ${item.relativePath}:`);
+        lines.push(`      ${from} → ${to}`);
+        lines.push(`      ${item.category}${item.manifestChange.recovery ? " recovery" : ""}`);
+        continue;
+      }
       const flags = [item.action, item.category, item.conflict ? "conflict" : "ok"].join(" | ");
       lines.push(`  - ${item.relativePath}: ${flags}`);
     }

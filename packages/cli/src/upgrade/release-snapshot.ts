@@ -7,6 +7,7 @@ import { CliError, CliErrorCode } from "../errors/cli-error";
 import { SUPPORTED_APP_INFRASTRUCTURE_MANIFEST_SCHEMA_VERSION } from "../template-sync/manifest";
 import { CLI_PACKAGE_NAME } from "../version";
 
+import { readReleaseManifestFields, type ReleaseManifestFields } from "./manifest-fields";
 import {
   assertNoPathListDuplicates,
   assertNoReleasePathOverlap,
@@ -34,6 +35,11 @@ export interface ReleaseSnapshotManifest {
   independentPaths: string[];
   repositorySyncedPaths?: string[];
   packageVersions: Record<string, string>;
+  /**
+   * Atlas-owned package manifest fields for this release.
+   * Absent on snapshots packaged before field-level manifest evidence existed.
+   */
+  manifestFields?: ReleaseManifestFields;
   openApiSpecRelativePath?: string;
 }
 
@@ -119,6 +125,7 @@ function validateReleaseSnapshotManifest(raw: unknown): ReleaseSnapshotManifest 
   }
 
   const packageVersions = readPackageVersions(record.packageVersions);
+  const manifestFields = readReleaseManifestFields(record.manifestFields);
 
   const openApiSpecRelativePath =
     record.openApiSpecRelativePath === undefined
@@ -136,6 +143,7 @@ function validateReleaseSnapshotManifest(raw: unknown): ReleaseSnapshotManifest 
     independentPaths,
     ...(repositorySyncedPaths.length > 0 ? { repositorySyncedPaths } : {}),
     packageVersions,
+    ...(manifestFields ? { manifestFields } : {}),
     openApiSpecRelativePath,
   };
 }

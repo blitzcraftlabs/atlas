@@ -47,7 +47,7 @@ import {
 } from "./lib/distribution-clean-room.mjs";
 import {
   proveInstalledCrossVersionUpgrade,
-  selectPreviousSupportedVersion,
+  selectInstalledUpgradeSource,
 } from "./lib/distribution-upgrade-proof.mjs";
 import { verifyNpmPublishDryRun } from "./lib/npm-publish-dry-run.mjs";
 import { startLocalPackageRegistryProcess } from "./lib/local-package-registry.mjs";
@@ -234,7 +234,7 @@ process.stdout.write(JSON.stringify({ root, catalog }));
   }
 
   const catalog = resolved.catalog;
-  const previous = selectPreviousSupportedVersion(catalog);
+  const previous = selectInstalledUpgradeSource(catalog, cliInstalled);
   if (!previous) {
     process.stdout.write(
       `${CLEAN_ROOM_STAGE_PREFIX} ${CLEAN_ROOM_STAGES.upgrade} deferred cross-version proof until the Version PR generates the next production snapshot (catalog current ${catalog.current})\n`

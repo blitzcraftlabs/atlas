@@ -114,16 +114,17 @@ Warnings do **not** fail CI in v0.1.
 
 ## Initial check registry
 
-| Check ID                       | Owns / delegates                       | Possible diagnostics                                                                     | Failure policy        |
-| ------------------------------ | -------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------- |
-| `project-contract`             | `@atlas/project`                       | `ATLAS_CONTRACT_*`                                                                       | error                 |
-| `workspace-structure`          | Doctor + manifests                     | `ATLAS_WORKSPACE_*`                                                                      | error                 |
-| `architecture-boundaries`      | ESLint policy + Doctor ownership scan  | `ATLAS_BOUNDARY_*`, `ATLAS_ARCHITECTURE_POLICY_*`, `ATLAS_DOCTOR_CHECK_EXECUTION_FAILED` | error                 |
-| `dependency-declarations`      | Doctor (configured application only)   | `ATLAS_DEPENDENCY_UNDECLARED`                                                            | error                 |
-| `generated-openapi`            | openapi-typescript compare (read-only) | `ATLAS_GENERATED_OPENAPI_*`                                                              | error / skip          |
-| `template-infrastructure-sync` | Manifest compare (read-only)           | `ATLAS_TEMPLATE_SYNC_*`                                                                  | error / skip          |
-| `upgrade-baseline`             | Contract `platform.baseline` metadata  | `ATLAS_UPGRADE_BASELINE_*`                                                               | warning / fail / skip |
-| `atlas-version`                | CLI vs checkout version metadata       | `ATLAS_VERSION_MISMATCH`, `ATLAS_ROOT_PACKAGE_METADATA_INVALID`                          | warning / error       |
+| Check ID                       | Owns / delegates                                          | Possible diagnostics                                                                     | Failure policy        |
+| ------------------------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------- |
+| `project-contract`             | `@atlas/project`                                          | `ATLAS_CONTRACT_*`                                                                       | error                 |
+| `workspace-structure`          | Doctor + manifests                                        | `ATLAS_WORKSPACE_*`                                                                      | error                 |
+| `architecture-boundaries`      | ESLint policy + Doctor ownership scan                     | `ATLAS_BOUNDARY_*`, `ATLAS_ARCHITECTURE_POLICY_*`, `ATLAS_DOCTOR_CHECK_EXECUTION_FAILED` | error                 |
+| `dependency-declarations`      | Doctor (configured application only)                      | `ATLAS_DEPENDENCY_UNDECLARED`                                                            | error                 |
+| `generated-openapi`            | openapi-typescript compare (read-only)                    | `ATLAS_GENERATED_OPENAPI_*`                                                              | error / skip          |
+| `template-infrastructure-sync` | Manifest compare (read-only)                              | `ATLAS_TEMPLATE_SYNC_*`                                                                  | error / skip          |
+| `upgrade-baseline`             | Contract `platform.baseline` metadata                     | `ATLAS_UPGRADE_BASELINE_*`                                                               | warning / fail / skip |
+| `atlas-version`                | CLI vs checkout version metadata                          | `ATLAS_VERSION_MISMATCH`, `ATLAS_ROOT_PACKAGE_METADATA_INVALID`                          | warning / error       |
+| `manifest-alignment`           | Installed release snapshot vs Atlas-owned manifest fields | `ATLAS_MANIFEST_ALIGNMENT_DRIFT`, `ATLAS_MANIFEST_ALIGNMENT_EVIDENCE_INVALID`            | error / skip          |
 
 ---
 
@@ -161,6 +162,8 @@ Warnings do **not** fail CI in v0.1.
 | `ATLAS_WORKSPACE_PACKAGE_MANIFEST_MISSING`     | error    | Add missing workspace `package.json`                                   |
 | `ATLAS_WORKSPACE_NOT_INCLUDED`                 | error    | Include configured roots in `pnpm-workspace.yaml`                      |
 | `ATLAS_DOCTOR_CHECK_EXECUTION_FAILED`          | error    | Inspect tooling/config errors or report an Atlas CLI defect            |
+| `ATLAS_MANIFEST_ALIGNMENT_DRIFT`               | error    | Run `pnpm atlas upgrade` so Atlas-owned manifest fields match baseline |
+| `ATLAS_MANIFEST_ALIGNMENT_EVIDENCE_INVALID`    | error    | Reinstall the Atlas CLI so local release evidence can be read          |
 
 Only implemented codes are emitted.
 
@@ -188,10 +191,10 @@ or configuration execution failures fail the `architecture-boundaries` check wit
 
 ## Deferred scope
 
-| Topic                                        | Doctor behavior                                                                                                                                |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dependency normalization / version alignment | Doctor only checks high-confidence undeclared imports in the application workspace; test files and broader package cleanup remain out of scope |
-| Migrations                                   | Doctor may emit version drift warnings but does not mutate metadata or run migrations                                                          |
+| Topic                                        | Doctor behavior                                                                                                                                                 |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dependency normalization / version alignment | Doctor checks Atlas-owned manifest fields against the installed release snapshot. It does not normalize consumer-owned dependencies or undeclared import ranges |
+| Migrations                                   | Doctor may emit version drift warnings but does not mutate metadata or run migrations                                                                           |
 
 ---
 

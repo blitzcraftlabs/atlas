@@ -38,6 +38,7 @@ export const DEFAULT_OPENAPI_SPEC_RELATIVE_PATH = "openapi/openapi.json";
 export const REHEARSAL_ONLY_ATLAS_VERSIONS = ["0.1.0", "0.2.0"] as const;
 
 export const SNAPSHOT_PACKAGE_MANIFEST_PATHS = [
+  "apps/web/package.json",
   "packages/cli/package.json",
   "packages/config/package.json",
   "packages/consent/package.json",

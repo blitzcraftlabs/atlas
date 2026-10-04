@@ -145,7 +145,70 @@
     "@atlas/consent": "1.2.2",
     "@atlas/project": "1.2.2",
     "@atlas/ui": "1.2.2",
+    "@atlas/web": "1.2.2",
     "@blitzcraftlabs/atlas": "1.2.2"
+  },
+  "manifestFields": {
+    "apps/web/package.json": {
+      "owned": [
+        "dependencies.next",
+        "version"
+      ],
+      "values": {
+        "dependencies.next": "16.3.3",
+        "version": "1.2.2"
+      }
+    },
+    "package.json": {
+      "owned": [
+        "version"
+      ],
+      "values": {
+        "version": "1.2.2"
+      }
+    },
+    "packages/cli/package.json": {
+      "owned": [
+        "version"
+      ],
+      "values": {
+        "version": "1.2.2"
+      }
+    },
+    "packages/config/package.json": {
+      "owned": [
+        "devDependencies.eslint-config-next",
+        "version"
+      ],
+      "values": {
+        "devDependencies.eslint-config-next": "16.3.3",
+        "version": "1.2.2"
+      }
+    },
+    "packages/consent/package.json": {
+      "owned": [
+        "version"
+      ],
+      "values": {
+        "version": "1.2.2"
+      }
+    },
+    "packages/project/package.json": {
+      "owned": [
+        "version"
+      ],
+      "values": {
+        "version": "1.2.2"
+      }
+    },
+    "packages/ui/package.json": {
+      "owned": [
+        "version"
+      ],
+      "values": {
+        "version": "1.2.2"
+      }
+    }
   },
   "openApiSpecRelativePath": "openapi/openapi.json"
 }

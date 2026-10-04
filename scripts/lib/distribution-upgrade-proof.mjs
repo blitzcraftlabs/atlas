@@ -73,6 +73,10 @@ export function parseReleaseSnapshotManifest(raw, snapshotRoot) {
       typeof record.packageVersions === "object" && record.packageVersions !== null
         ? record.packageVersions
         : {},
+    manifestFields:
+      typeof record.manifestFields === "object" && record.manifestFields !== null
+        ? record.manifestFields
+        : undefined,
     openApiSpecRelativePath:
       typeof record.openApiSpecRelativePath === "string"
         ? record.openApiSpecRelativePath
@@ -143,6 +147,120 @@ function copySnapshotFile(sourceRoot, destinationRoot, relativePath, label) {
   }
   mkdirSync(path.dirname(destination), { recursive: true });
   copyFileSync(source, destination);
+}
+
+function alignOwnedManifestFields(consumerRoot, manifestFields) {
+  if (!manifestFields || typeof manifestFields !== "object") {
+    return;
+  }
+
+  for (const [relativePath, set] of Object.entries(manifestFields)) {
+    if (!set || typeof set !== "object" || !Array.isArray(set.owned)) {
+      continue;
+    }
+    const absolutePath = resolveUnderRoot(consumerRoot, relativePath, relativePath);
+    if (!existsSync(absolutePath)) {
+      continue;
+    }
+    const manifest = readJson(absolutePath, absolutePath);
+    for (const field of set.owned) {
+      if (typeof field !== "string") {
+        continue;
+      }
+      const value = set.values?.[field];
+      writeOwnedManifestField(manifest, field, typeof value === "string" ? value : undefined);
+    }
+    writeJson(absolutePath, manifest);
+  }
+}
+
+function writeOwnedManifestField(manifest, field, value) {
+  if (field === "version") {
+    if (value === undefined) {
+      delete manifest.version;
+    } else {
+      manifest.version = value;
+    }
+    return;
+  }
+
+  const separator = field.indexOf(".");
+  if (separator <= 0) {
+    throw new Error(`Unsupported owned manifest field ${field}`);
+  }
+  const sectionName = field.slice(0, separator);
+  const dependencyName = field.slice(separator + 1);
+  const section =
+    manifest[sectionName] && typeof manifest[sectionName] === "object" ? manifest[sectionName] : {};
+  if (value === undefined) {
+    delete section[dependencyName];
+  } else {
+    section[dependencyName] = value;
+  }
+  if (Object.keys(section).length === 0) {
+    delete manifest[sectionName];
+  } else {
+    manifest[sectionName] = section;
+  }
+}
+
+const CONSUMER_CUSTOM_DEPENDENCIES = {
+  "next-themes": "^0.4.6",
+  shiki: "^4.4.3",
+};
+
+export function addConsumerOwnedWebDependencies(consumerRoot) {
+  const manifestPath = path.join(consumerRoot, "apps/web/package.json");
+  if (!existsSync(manifestPath)) {
+    return;
+  }
+  const manifest = readJson(manifestPath, "apps/web/package.json");
+  manifest.dependencies = {
+    ...(manifest.dependencies ?? {}),
+    ...CONSUMER_CUSTOM_DEPENDENCIES,
+  };
+  writeJson(manifestPath, manifest);
+}
+
+function ownedDependencyValuesDiffer(left, right) {
+  const paths = new Set([
+    ...Object.keys(left?.manifestFields ?? {}),
+    ...Object.keys(right?.manifestFields ?? {}),
+  ]);
+  for (const relativePath of paths) {
+    const leftSet = left?.manifestFields?.[relativePath];
+    const rightSet = right?.manifestFields?.[relativePath];
+    const fields = new Set([...(leftSet?.owned ?? []), ...(rightSet?.owned ?? [])]);
+    for (const field of fields) {
+      if (!field.includes(".")) {
+        continue;
+      }
+      if (leftSet?.values?.[field] !== rightSet?.values?.[field]) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+export function selectInstalledUpgradeSource(catalog, cliInstalled) {
+  const previous = selectPreviousSupportedVersion(catalog);
+  if (!previous) {
+    return null;
+  }
+
+  const current = readReleaseSnapshotManifest(packagedSnapshotRoot(cliInstalled, catalog.current));
+  for (const version of catalog.supportedVersions) {
+    if (version === catalog.current) {
+      continue;
+    }
+    const source = readReleaseSnapshotManifest(packagedSnapshotRoot(cliInstalled, version));
+    if (ownedDependencyValuesDiffer(source, current)) {
+      return version;
+    }
+  }
+
+  return previous;
 }
 
 function alignWorkspacePackageVersions(consumerRoot, packageVersions) {
@@ -232,6 +350,7 @@ export function materializePreviousProductionConsumer(options) {
   }
 
   alignWorkspacePackageVersions(options.consumerRoot, previousManifest.packageVersions);
+  alignOwnedManifestFields(options.consumerRoot, previousManifest.manifestFields);
   writePreviousBaseline(options.consumerRoot, previousManifest, applicationRoot);
 
   return {
@@ -345,6 +464,77 @@ export function assertSuccessfulUpgradeApply(envelope, expectations) {
   }
 }
 
+export function assertConsumerManifestEvolution(options) {
+  const webManifestPath = path.join(options.consumerRoot, "apps/web/package.json");
+  const issues = [];
+  if (existsSync(webManifestPath)) {
+    const webManifest = readJson(webManifestPath, "apps/web/package.json");
+    for (const [name, range] of Object.entries(CONSUMER_CUSTOM_DEPENDENCIES)) {
+      if (webManifest.dependencies?.[name] !== range) {
+        issues.push(
+          `Consumer-owned dependency ${name} is ${JSON.stringify(webManifest.dependencies?.[name])}, expected ${range}`
+        );
+      }
+    }
+  }
+
+  const currentFields = options.currentManifest.manifestFields ?? {};
+  for (const [relativePath, set] of Object.entries(currentFields)) {
+    const absolutePath = path.join(options.consumerRoot, relativePath);
+    if (!existsSync(absolutePath) || !set?.owned) {
+      continue;
+    }
+    const manifest = readJson(absolutePath, relativePath);
+    for (const field of set.owned) {
+      const expected = set.values?.[field];
+      const actual = readOwnedManifestField(manifest, field);
+      if (relativePath === "package.json" && field === "version" && actual === "0.1.0") {
+        continue;
+      }
+      if (actual !== expected) {
+        issues.push(
+          `${relativePath}#${field} is ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`
+        );
+      }
+    }
+  }
+
+  const previousNext =
+    options.previousManifest.manifestFields?.["apps/web/package.json"]?.values?.[
+      "dependencies.next"
+    ];
+  const currentNext =
+    options.currentManifest.manifestFields?.["apps/web/package.json"]?.values?.[
+      "dependencies.next"
+    ];
+  if (typeof currentNext === "string" && previousNext !== currentNext) {
+    const lockfilePath = path.join(options.consumerRoot, "pnpm-lock.yaml");
+    const lockfile = existsSync(lockfilePath) ? readFileSync(lockfilePath, "utf8") : "";
+    if (
+      !lockfile.includes(`next@${currentNext}`) &&
+      !lockfile.includes(`version: ${currentNext}`)
+    ) {
+      issues.push(`pnpm-lock.yaml does not resolve next@${currentNext}`);
+    }
+  }
+
+  if (issues.length > 0) {
+    throw new Error(`Owned manifest evolution is incomplete:\n${issues.join("\n")}`);
+  }
+}
+
+function readOwnedManifestField(manifest, field) {
+  if (field === "version") {
+    return manifest.version;
+  }
+  const separator = field.indexOf(".");
+  const section = manifest[field.slice(0, separator)];
+  if (!section || typeof section !== "object") {
+    return undefined;
+  }
+  return section[field.slice(separator + 1)];
+}
+
 export function assertPostUpgradeReleaseIdentity(options) {
   const currentManifest = readReleaseSnapshotManifest(options.currentSnapshotRoot);
   const contract = readJson(
@@ -453,6 +643,7 @@ export function proveInstalledCrossVersionUpgrade(options) {
     previousManifest: materialized.previousManifest,
     currentManifest: materialized.currentManifest,
   });
+  addConsumerOwnedWebDependencies(options.consumerRoot);
 
   const planned = options.runAtlas([
     "upgrade",
@@ -474,6 +665,11 @@ export function proveInstalledCrossVersionUpgrade(options) {
   assertPostUpgradeReleaseIdentity({
     consumerRoot: options.consumerRoot,
     currentSnapshotRoot,
+  });
+  assertConsumerManifestEvolution({
+    consumerRoot: options.consumerRoot,
+    currentManifest: materialized.currentManifest,
+    previousManifest: materialized.previousManifest,
   });
   options.runValidation();
 
