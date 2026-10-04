@@ -10,8 +10,13 @@ import { runManifestAlignmentCheck } from "../doctor/manifest-alignment";
 import * as doctorModule from "../doctor";
 import { applyPackageUpdates } from "../upgrade/package-apply";
 import { planPackageUpdates } from "../upgrade/package-plan";
-import { collectManagedManifestFields } from "../upgrade/manifest-fields";
+import {
+  collectManagedManifestFields,
+  type ReleaseManifestFields,
+} from "../upgrade/manifest-fields";
+import { MANAGED_MANIFEST_RELATIVE_PATHS, parseManifestField } from "../upgrade/manifest-ownership";
 import { runUpgrade } from "../upgrade/run";
+import { readCheckoutAtlasVersion } from "../version";
 
 import type { DoctorContext } from "../doctor/context";
 import type { ReleaseSnapshotManifest } from "../upgrade/release-snapshot";
@@ -713,34 +718,193 @@ describe("manifest upgrade run", () => {
   }, 180_000);
 });
 
-describe("packaged manifest evidence", () => {
-  it("records the 1.2.2 to 1.3.1 Next pin and matches current manifest collection", () => {
-    const production = path.resolve(__dirname, "../../release-assets/production");
-    const source = JSON.parse(
-      readFileSync(path.join(production, "1.2.2/release.snapshot.json"), "utf8")
-    );
-    const target = JSON.parse(
-      readFileSync(path.join(production, "1.3.1/release.snapshot.json"), "utf8")
-    );
-    expect(source.packageVersions["@atlas/web"]).toBe("1.2.2");
-    expect(source.manifestFields["apps/web/package.json"].values["dependencies.next"]).toBe(
-      "16.3.3"
-    );
-    expect(target.packageVersions["@atlas/web"]).toBe("1.3.1");
-    expect(target.manifestFields["apps/web/package.json"].values["dependencies.next"]).toBe(
-      "16.3.8"
-    );
-    expect(
-      target.manifestFields["packages/config/package.json"].values[
-        "devDependencies.eslint-config-next"
-      ]
-    ).toBe("16.3.8");
+const REPO_ROOT = path.resolve(__dirname, "../../../..");
+const PRODUCTION_ASSETS = path.resolve(__dirname, "../../release-assets/production");
 
-    const repoRoot = path.resolve(__dirname, "../../../..");
-    const collected = collectManagedManifestFields(repoRoot, (absolutePath) =>
-      JSON.parse(readFileSync(absolutePath, "utf8"))
+function readJsonManifest(absolutePath: string): Record<string, unknown> {
+  return JSON.parse(readFileSync(absolutePath, "utf8")) as Record<string, unknown>;
+}
+
+function collectManifestFieldsFromRepo(repoRoot: string): ReleaseManifestFields {
+  const collected = collectManagedManifestFields(repoRoot, readJsonManifest);
+  if (!collected) {
+    throw new Error("collectManagedManifestFields returned no managed manifest evidence.");
+  }
+  return collected;
+}
+
+function requireSnapshotManifestFields(
+  snapshot: ReleaseSnapshotManifest,
+  version: string
+): ReleaseManifestFields {
+  if (!snapshot.manifestFields) {
+    throw new Error(`Release snapshot for Atlas ${version} is missing manifestFields evidence.`);
+  }
+  return snapshot.manifestFields;
+}
+
+function readProductionSnapshot(productionDir: string, version: string): ReleaseSnapshotManifest {
+  const snapshotPath = path.join(productionDir, version, "release.snapshot.json");
+  if (!existsSync(snapshotPath)) {
+    throw new Error(
+      `Missing production release snapshot for Atlas ${version}. Expected ${snapshotPath}. Generate release assets for that version before asserting current-checkout evidence.`
     );
-    expect(collected).toEqual(target.manifestFields);
+  }
+  return JSON.parse(readFileSync(snapshotPath, "utf8")) as ReleaseSnapshotManifest;
+}
+
+function expectCurrentCheckoutMatchesProductionSnapshot(
+  productionDir: string,
+  repoRoot: string
+): void {
+  const currentVersion = readCheckoutAtlasVersion(repoRoot);
+  const snapshot = readProductionSnapshot(productionDir, currentVersion);
+  expect(collectManifestFieldsFromRepo(repoRoot)).toEqual(
+    requireSnapshotManifestFields(snapshot, currentVersion)
+  );
+}
+
+function bumpOwnedPackageVersions(
+  fields: ReleaseManifestFields,
+  fromVersion: string,
+  toVersion: string
+): ReleaseManifestFields {
+  return Object.fromEntries(
+    Object.entries(fields).map(([relativePath, fieldSet]) => [
+      relativePath,
+      {
+        owned: [...fieldSet.owned],
+        values: Object.fromEntries(
+          Object.entries(fieldSet.values).map(([field, value]) => [
+            field,
+            field === "version" && value === fromVersion ? toVersion : value,
+          ])
+        ),
+      },
+    ])
+  ) as ReleaseManifestFields;
+}
+
+function writeManagedManifestsFromFields(repoRoot: string, fields: ReleaseManifestFields): void {
+  for (const relativePath of MANAGED_MANIFEST_RELATIVE_PATHS) {
+    const fieldSet = fields[relativePath];
+    if (!fieldSet) {
+      continue;
+    }
+
+    const manifest: Record<string, unknown> = {};
+    if (relativePath === "packages/cli/package.json") {
+      manifest.name = "@blitzcraftlabs/atlas";
+    }
+    if (relativePath === "apps/web/package.json") {
+      manifest.name = "@atlas/web";
+    }
+
+    for (const [field, value] of Object.entries(fieldSet.values)) {
+      const parsed = parseManifestField(field);
+      if (!parsed) {
+        continue;
+      }
+      if (parsed.kind === "version") {
+        manifest.version = value;
+        continue;
+      }
+      const section = (manifest[parsed.section] ?? {}) as Record<string, string>;
+      section[parsed.name] = value;
+      manifest[parsed.section] = section;
+    }
+
+    const absolutePath = path.join(repoRoot, relativePath);
+    mkdirSync(path.dirname(absolutePath), { recursive: true });
+    writeFileSync(absolutePath, `${JSON.stringify(manifest, null, 2)}\n`);
+  }
+}
+
+function writeProductionSnapshot(
+  productionDir: string,
+  version: string,
+  manifestFields: ReleaseManifestFields
+): void {
+  const snapshot: ReleaseSnapshotManifest = {
+    ...releaseManifest(version, manifestFields),
+    atlasVersion: version,
+  };
+  const snapshotDir = path.join(productionDir, version);
+  mkdirSync(snapshotDir, { recursive: true });
+  writeFileSync(
+    path.join(snapshotDir, "release.snapshot.json"),
+    `${JSON.stringify(snapshot, null, 2)}\n`
+  );
+}
+
+describe("packaged manifest evidence", () => {
+  it("records the 1.2.2 to 1.3.1 Next and eslint-config-next pin evolution", () => {
+    const sourceFields = requireSnapshotManifestFields(
+      readProductionSnapshot(PRODUCTION_ASSETS, "1.2.2"),
+      "1.2.2"
+    );
+    const targetFields = requireSnapshotManifestFields(
+      readProductionSnapshot(PRODUCTION_ASSETS, "1.3.1"),
+      "1.3.1"
+    );
+    const source = readProductionSnapshot(PRODUCTION_ASSETS, "1.2.2");
+    const target = readProductionSnapshot(PRODUCTION_ASSETS, "1.3.1");
+    expect(source.packageVersions["@atlas/web"]).toBe("1.2.2");
+    expect(sourceFields["apps/web/package.json"]!.values["dependencies.next"]).toBe("16.3.3");
+    expect(target.packageVersions["@atlas/web"]).toBe("1.3.1");
+    expect(targetFields["apps/web/package.json"]!.values["dependencies.next"]).toBe("16.3.8");
+    expect(
+      targetFields["packages/config/package.json"]!.values["devDependencies.eslint-config-next"]
+    ).toBe("16.3.8");
+  });
+
+  it("matches current manifest collection to the current production snapshot", () => {
+    expectCurrentCheckoutMatchesProductionSnapshot(PRODUCTION_ASSETS, REPO_ROOT);
+  });
+});
+
+describe("version PR current checkout regression", () => {
+  let repoRoot: string;
+  let productionDir: string;
+
+  beforeEach(() => {
+    repoRoot = mkdtempSync(path.join(os.tmpdir(), "atlas-version-pr-checkout-"));
+    productionDir = mkdtempSync(path.join(os.tmpdir(), "atlas-version-pr-production-"));
+  });
+
+  afterEach(() => {
+    rmSync(repoRoot, { recursive: true, force: true });
+    rmSync(productionDir, { recursive: true, force: true });
+  });
+
+  it("aligns evidence and Doctor after a changeset version bump beyond 1.3.1", () => {
+    const priorVersion = "1.3.1";
+    const nextVersion = "1.3.2";
+    const priorSnapshot = readProductionSnapshot(PRODUCTION_ASSETS, priorVersion);
+    const nextManifestFields = bumpOwnedPackageVersions(
+      requireSnapshotManifestFields(priorSnapshot, priorVersion),
+      priorVersion,
+      nextVersion
+    );
+
+    writeManagedManifestsFromFields(repoRoot, nextManifestFields);
+    writeProductionSnapshot(productionDir, nextVersion, nextManifestFields);
+
+    expect(readCheckoutAtlasVersion(repoRoot)).toBe(nextVersion);
+    expectCurrentCheckoutMatchesProductionSnapshot(productionDir, repoRoot);
+
+    const context = {
+      repoRoot,
+      atlasVersion: readCheckoutAtlasVersion(repoRoot),
+      checkoutAtlasVersion: readCheckoutAtlasVersion(repoRoot),
+    } as DoctorContext;
+
+    const result = runManifestAlignmentCheck(context, () => ({
+      atlasVersion: nextVersion,
+      manifestFields: nextManifestFields,
+    }));
+    expect(result.status).toBe("pass");
+    expect(result.diagnostics).toEqual([]);
   });
 });
 
@@ -781,10 +945,12 @@ describe("doctor manifest alignment", () => {
   it("does not query a registry while reading installed release evidence", () => {
     const source = readFileSync(path.resolve(__dirname, "../doctor/manifest-alignment.ts"), "utf8");
     expect(source).not.toMatch(/release-discovery|pnpm view|node:https|node:http/);
+    const repoRoot = REPO_ROOT;
+    const currentVersion = readCheckoutAtlasVersion(repoRoot);
     const context = {
-      repoRoot: path.resolve(__dirname, "../../../.."),
-      atlasVersion: "1.3.1",
-      checkoutAtlasVersion: "1.3.1",
+      repoRoot,
+      atlasVersion: currentVersion,
+      checkoutAtlasVersion: currentVersion,
     } as DoctorContext;
     const result = runManifestAlignmentCheck(context);
     expect(result.status).toBe("pass");
