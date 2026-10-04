@@ -1,7 +1,9 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 import { DoctorDiagnosticCode } from "../doctor/diagnostics";
+import { loadInstalledManifestEvidence } from "../doctor/manifest-alignment";
+import { writeManifestFieldValue } from "../upgrade/manifest-fields";
 import { ExitCode } from "../exit-codes";
 import { readCliAtlasVersion } from "../version";
 import {
@@ -560,6 +562,22 @@ describe("atlas doctor version diagnostics", () => {
       withApplicationTooling: true,
       withEslintBoundaryFixtures: false,
     });
+    const evidence = loadInstalledManifestEvidence(readCliAtlasVersion());
+    for (const [relativePath, set] of Object.entries(evidence?.manifestFields ?? {})) {
+      const absolutePath = path.join(fixture.root, relativePath);
+      if (relativePath === "package.json") {
+        continue;
+      }
+      try {
+        const manifest = JSON.parse(readFileSync(absolutePath, "utf8")) as Record<string, unknown>;
+        for (const field of set.owned) {
+          writeManifestFieldValue(manifest, field, set.values[field]);
+        }
+        writeFileSync(absolutePath, `${JSON.stringify(manifest, null, 2)}\n`);
+      } catch {
+        // Fixture packages that are not part of this stub stay unchecked.
+      }
+    }
     const { exitCode, result } = runDoctorJson(fixture.root);
     const versionCheck = result.checks.find((check) => check.id === "atlas-version");
 

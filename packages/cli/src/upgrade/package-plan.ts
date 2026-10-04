@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
+import { planManifestFieldUpdates, releaseManifestFieldsHaveEvidence } from "./manifest-fields";
+
 import type { ReleaseSnapshotManifest } from "./release-snapshot";
 import type { UpgradePlanItem } from "./types";
 
@@ -10,6 +12,7 @@ const ATLAS_WORKSPACE_PACKAGES = [
   "@atlas/consent",
   "@atlas/project",
   "@atlas/ui",
+  "@atlas/web",
 ] as const;
 
 const ATLAS_PACKAGE_DIR: Record<(typeof ATLAS_WORKSPACE_PACKAGES)[number], string> = {
@@ -18,6 +21,7 @@ const ATLAS_PACKAGE_DIR: Record<(typeof ATLAS_WORKSPACE_PACKAGES)[number], strin
   "@atlas/consent": "packages/consent/package.json",
   "@atlas/project": "packages/project/package.json",
   "@atlas/ui": "packages/ui/package.json",
+  "@atlas/web": "apps/web/package.json",
 };
 
 export function readWorkspacePackageVersion(repoRoot: string, packageName: string): string | null {
@@ -45,6 +49,27 @@ export function packageExistsInConsumer(repoRoot: string, packageName: string): 
 }
 
 export function planPackageUpdates(options: {
+  repoRoot: string;
+  baselineAtlasVersion: string;
+  sourceManifest: ReleaseSnapshotManifest;
+  targetManifest: ReleaseSnapshotManifest;
+}): UpgradePlanItem[] {
+  if (
+    releaseManifestFieldsHaveEvidence(options.sourceManifest.manifestFields) &&
+    releaseManifestFieldsHaveEvidence(options.targetManifest.manifestFields)
+  ) {
+    return planManifestFieldUpdates({
+      repoRoot: options.repoRoot,
+      baselineAtlasVersion: options.baselineAtlasVersion,
+      sourceFields: options.sourceManifest.manifestFields,
+      targetFields: options.targetManifest.manifestFields,
+    });
+  }
+
+  return planLegacyPackageVersions(options);
+}
+
+function planLegacyPackageVersions(options: {
   repoRoot: string;
   sourceManifest: ReleaseSnapshotManifest;
   targetManifest: ReleaseSnapshotManifest;

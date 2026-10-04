@@ -1,6 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
+import { applyManifestFieldChange } from "./manifest-fields";
+
 import type { UpgradePlanItem } from "./types";
 
 const ATLAS_PACKAGE_DIR: Record<string, string> = {
@@ -9,6 +11,7 @@ const ATLAS_PACKAGE_DIR: Record<string, string> = {
   "@atlas/consent": "packages/consent/package.json",
   "@atlas/project": "packages/project/package.json",
   "@atlas/ui": "packages/ui/package.json",
+  "@atlas/web": "apps/web/package.json",
 };
 
 export interface ApplyPackageUpdatesResult {
@@ -35,6 +38,7 @@ function writePackageVersion(absolutePath: string, version: string): void {
 export function applyPackageUpdates(options: {
   repoRoot: string;
   items: UpgradePlanItem[];
+  baselineAtlasVersion: string;
   dryRun?: boolean;
 }): ApplyPackageUpdatesResult {
   const applied: string[] = [];
@@ -48,6 +52,31 @@ export function applyPackageUpdates(options: {
 
     if (item.conflict) {
       blocked.push(item);
+      continue;
+    }
+
+    if (item.manifestChange) {
+      const result = applyManifestFieldChange({
+        repoRoot: options.repoRoot,
+        change: item.manifestChange,
+        baselineAtlasVersion: options.baselineAtlasVersion,
+        dryRun: options.dryRun,
+      });
+      if (result.blockedMessage) {
+        blocked.push({
+          ...item,
+          conflict: true,
+          category: "manual",
+          action: "manual-review",
+          message: result.blockedMessage,
+        });
+        continue;
+      }
+      if (result.applied) {
+        applied.push(item.relativePath);
+      } else {
+        skipped.push(item);
+      }
       continue;
     }
 

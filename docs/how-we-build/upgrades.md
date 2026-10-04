@@ -369,6 +369,10 @@ Discovered during upgrade rehearsal — `atlas upgrade` implements:
 - [x] Refresh `platform.baseline` after successful upgrade
 - [x] Load release snapshot artifacts for planning (source + target era content)
 - [x] Package upgrade planning for workspace `@atlas/*` versions
+- [x] Field-level evolution of Atlas-owned package manifest entries, preserving consumer-owned
+      dependency customizations. Baseline advances only after those fields match the target release.
+      Atlas 1.3.1 left `@atlas/web` and platform dependency pins behind; later releases repair that
+      known stale state instead of treating it as a consumer modification.
 - [x] Security-critical metadata support via planner categories (canonical advisories remain in
       [security.md](security.md))
 - [x] Final validation hook (`atlas doctor`) in upgrade workflow

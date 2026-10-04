@@ -441,6 +441,7 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
 
   const packageItems = planPackageUpdates({
     repoRoot: options.repoRoot,
+    baselineAtlasVersion: sourceVersion,
     sourceManifest: sourceRelease.manifest,
     targetManifest: targetRelease.manifest,
   });
@@ -587,6 +588,7 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
   const packageApplyResult = applyPackageUpdates({
     repoRoot: options.repoRoot,
     items,
+    baselineAtlasVersion: sourceVersion,
     dryRun: false,
   });
 

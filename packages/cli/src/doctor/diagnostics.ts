@@ -31,6 +31,8 @@ export const DoctorDiagnosticCode = {
   UPGRADE_BASELINE_CHECKSUM_INVALID: "ATLAS_UPGRADE_BASELINE_CHECKSUM_INVALID",
   UPGRADE_BASELINE_MANIFEST_INCOMPATIBLE: "ATLAS_UPGRADE_BASELINE_MANIFEST_INCOMPATIBLE",
   UPGRADE_BASELINE_STALE_ENTRY: "ATLAS_UPGRADE_BASELINE_STALE_ENTRY",
+  MANIFEST_ALIGNMENT_DRIFT: "ATLAS_MANIFEST_ALIGNMENT_DRIFT",
+  MANIFEST_ALIGNMENT_EVIDENCE_INVALID: "ATLAS_MANIFEST_ALIGNMENT_EVIDENCE_INVALID",
 } as const;
 
 export type DoctorDiagnosticCodeType =
@@ -220,6 +222,18 @@ export const DOCTOR_DIAGNOSTIC_DEFINITIONS: Record<string, DiagnosticDefinition>
     severity: "warning",
     suggestedFix:
       "Remove stale baseline checksum entries or re-capture platform.baseline so evidence matches current manifest syncedPaths.",
+    documentation: "docs/how-we-build/upgrades.md",
+  },
+  [DoctorDiagnosticCode.MANIFEST_ALIGNMENT_DRIFT]: {
+    severity: "error",
+    suggestedFix:
+      "Run `pnpm atlas upgrade` so Atlas-owned manifest fields match the recorded baseline.",
+    documentation: "docs/how-we-build/upgrades.md",
+  },
+  [DoctorDiagnosticCode.MANIFEST_ALIGNMENT_EVIDENCE_INVALID]: {
+    severity: "error",
+    suggestedFix:
+      "Reinstall @blitzcraftlabs/atlas so Doctor can read the local release snapshot for this baseline. Doctor does not query a registry.",
     documentation: "docs/how-we-build/upgrades.md",
   },
 };

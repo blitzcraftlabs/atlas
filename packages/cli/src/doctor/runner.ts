@@ -8,6 +8,7 @@ import {
   runWorkspaceStructureCheck,
 } from "./checks";
 import { createCheckExecutionFailedDiagnostic } from "./diagnostics";
+import { runManifestAlignmentCheck } from "./manifest-alignment";
 import { sortDiagnostics } from "./map-eslint";
 import { runTemplateInfrastructureSyncCheck } from "./template-sync";
 import { DOCTOR_REPORT_SCHEMA_VERSION } from "./types";
@@ -79,6 +80,13 @@ export const DOCTOR_CHECKS: DoctorCheckDefinition[] = [
     rationale:
       "The installed Atlas CLI snapshot should match the checkout version to avoid tooling/project drift during future migrations.",
     run: runAtlasVersionCheck,
+  },
+  {
+    id: "manifest-alignment",
+    title: "Atlas manifest alignment",
+    rationale:
+      "A recorded Atlas baseline must match the Atlas-owned package manifest fields shipped in that release. Consumer-owned dependency entries are ignored.",
+    run: runManifestAlignmentCheck,
   },
 ];
 

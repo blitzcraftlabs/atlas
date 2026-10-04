@@ -38,7 +38,17 @@ Generated consumers do not carry Atlas release history.
   "generatedPaths": ["src/lib/api/contracts/schema.ts"],
   "independentPaths": ["src/lib/application/authz.ts"],
   "packageVersions": {
-    "@atlas/ui": "0.4.0"
+    "@atlas/ui": "0.4.0",
+    "@atlas/web": "0.4.0"
+  },
+  "manifestFields": {
+    "apps/web/package.json": {
+      "owned": ["dependencies.next", "version"],
+      "values": {
+        "dependencies.next": "16.3.8",
+        "version": "0.4.0"
+      }
+    }
   },
   "openApiSpecRelativePath": "openapi/openapi.json"
 }

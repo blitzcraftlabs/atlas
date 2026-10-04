@@ -40,6 +40,17 @@ export type UpgradeRunStatus =
 
 export type UpgradePathScope = "application" | "repository";
 
+export interface ManifestFieldChange {
+  relativePath: string;
+  field: string;
+  operation: "set" | "remove";
+  sourceOwned: boolean;
+  targetOwned: boolean;
+  sourceValue?: string;
+  targetValue?: string;
+  recovery?: boolean;
+}
+
 export interface UpgradePlanItem {
   relativePath: string;
   ownershipChannel: UpgradeOwnershipChannel;
@@ -53,6 +64,7 @@ export interface UpgradePlanItem {
   targetVersion?: string;
   baselineStatus?: UpgradeBaselineStatus;
   pathScope?: UpgradePathScope;
+  manifestChange?: ManifestFieldChange;
 }
 
 export interface UpgradePlanSummary {

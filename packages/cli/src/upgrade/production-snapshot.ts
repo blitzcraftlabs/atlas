@@ -8,6 +8,7 @@ import {
   loadAppInfrastructureManifest,
 } from "../template-sync/manifest";
 
+import { collectManagedManifestFields } from "./manifest-fields";
 import { resolvePathUnderRoot } from "./path-safety";
 import {
   DEFAULT_OPENAPI_SPEC_RELATIVE_PATH,
@@ -178,6 +179,7 @@ function serializeReleaseSnapshotManifest(manifest: ReleaseSnapshotManifest): st
         ? { repositorySyncedPaths: manifest.repositorySyncedPaths }
         : {}),
       packageVersions: manifest.packageVersions,
+      ...(manifest.manifestFields ? { manifestFields: manifest.manifestFields } : {}),
       ...(manifest.openApiSpecRelativePath
         ? { openApiSpecRelativePath: manifest.openApiSpecRelativePath }
         : {}),
@@ -220,6 +222,7 @@ export function generateProductionReleaseSnapshot(
     independentPaths,
     ...(repositorySyncedPaths.length > 0 ? { repositorySyncedPaths } : {}),
     packageVersions: collectPackageVersions(repoRoot),
+    manifestFields: collectManagedManifestFields(repoRoot, readJsonFile),
     openApiSpecRelativePath: openApiExists ? DEFAULT_OPENAPI_SPEC_RELATIVE_PATH : undefined,
   };
 
