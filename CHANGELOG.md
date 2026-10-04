@@ -8,6 +8,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-04
+
+### Fixed
+
+- Fix npm publication so the packed upgrade catalog is checked with the maintainer catalog rules
+  instead of CLI modules the build does not emit. GitHub-only releases, including 1.3.0, stay out of
+  the consumer upgrade window until they are published on npm. Consumers on 1.2.2 keep a recovery
+  path on the next published release.
+
 ## [1.3.0] - 2026-10-03
 
 ### Changed
@@ -194,7 +203,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Enterprise frontend platform monorepo: `@atlas/web` template app, `@atlas/ui`, `@atlas/config`,
   `@atlas/consent`, conventions, and documentation.
 
-[Unreleased]: https://github.com/blitzcraftlabs/atlas/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/blitzcraftlabs/atlas/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/blitzcraftlabs/atlas/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.4...v1.3.0
 [1.2.4]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.3...v1.2.4
 [1.2.3]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.2...v1.2.3
