@@ -23,7 +23,7 @@ export function installConsumerDependencies(options: {
   env?: NodeJS.ProcessEnv;
 }): DependencyInstallResult {
   const spawn = options.spawn ?? spawnSync;
-  const result = spawn(pnpmExecutable(), ["install"], {
+  const result = spawn(pnpmExecutable(), ["install", "--no-frozen-lockfile"], {
     cwd: options.repoRoot,
     encoding: "utf8",
     shell: false,

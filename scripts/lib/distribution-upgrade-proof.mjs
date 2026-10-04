@@ -243,15 +243,25 @@ function ownedDependencyValuesDiffer(left, right) {
   return false;
 }
 
+function packagedSnapshotExists(cliInstalled, version) {
+  return existsSync(path.join(packagedSnapshotRoot(cliInstalled, version), RELEASE_SNAPSHOT_FILENAME));
+}
+
 export function selectInstalledUpgradeSource(catalog, cliInstalled) {
   const previous = selectPreviousSupportedVersion(catalog);
   if (!previous) {
     return null;
   }
+  if (
+    !packagedSnapshotExists(cliInstalled, catalog.current) ||
+    !packagedSnapshotExists(cliInstalled, previous)
+  ) {
+    return previous;
+  }
 
   const current = readReleaseSnapshotManifest(packagedSnapshotRoot(cliInstalled, catalog.current));
   for (const version of catalog.supportedVersions) {
-    if (version === catalog.current) {
+    if (version === catalog.current || !packagedSnapshotExists(cliInstalled, version)) {
       continue;
     }
     const source = readReleaseSnapshotManifest(packagedSnapshotRoot(cliInstalled, version));
@@ -618,7 +628,7 @@ export function assertPostUpgradeReleaseIdentity(options) {
  * @returns {{ deferred: true, current: string } | { deferred: false, previous: string, current: string }}
  */
 export function proveInstalledCrossVersionUpgrade(options) {
-  const previous = selectPreviousSupportedVersion(options.catalog);
+  const previous = selectInstalledUpgradeSource(options.catalog, options.cliInstalled);
   if (!previous) {
     return { deferred: true, current: options.catalog.current };
   }
