@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { PUBLIC_CLI_RELATIVE_PATH } from "../atlas-workspaces.mjs";
+import { loadPublishedCatalogVerifier } from "../../packages/cli/scripts/load-published-catalog-verifier.mjs";
 import {
   assertPackedPublishedUpgradeCatalog,
   packExactPublicCliTarball,
@@ -27,12 +28,23 @@ function bundledCliJavaScriptEntries() {
     .sort();
 }
 
+function expectedSupportWindow(verifier, packageRoot, currentVersion, publishedVersions) {
+  const productionRoot = verifier.sourceProductionReleasesRoot(packageRoot);
+  const snapshotVersions = verifier.listProductionSnapshotVersions(productionRoot);
+  return verifier.selectSupportedReleaseWindow({
+    currentVersion,
+    snapshotVersions,
+    publishedVersions,
+  });
+}
+
 describe("npm publication catalog verification", () => {
   it(
     "packs and validates from a checkout with no pre-existing CLI dist",
     { timeout: 10 * 60 * 1000 },
     () => {
       const destinationDir = mkdtempSync(path.join(os.tmpdir(), "atlas-npm-publication-"));
+      const verifier = loadPublishedCatalogVerifier();
       try {
         rmSync(distDir, { recursive: true, force: true });
         assert.equal(existsSync(path.join(distDir, "upgrade", "release-assets.js")), false);
@@ -64,12 +76,16 @@ describe("npm publication catalog verification", () => {
 
         assert.equal(packed.catalog.current, packed.identity.version);
         assert.equal(packed.catalog.supportedVersions.includes("1.2.3"), false);
-        assert.equal(packed.catalog.supportedVersions.includes("1.2.2"), true);
-        assert.equal(packed.catalog.supportedVersions.includes("1.2.4"), true);
-        if (packed.identity.version === "1.3.0") {
-          assert.deepEqual(packed.catalog.supportedVersions, ["1.2.2", "1.2.4", "1.3.0"]);
-          assert.deepEqual(packed.catalog.recoverySources, ["1.2.2"]);
-        }
+        assert.equal(packed.catalog.supportedVersions.includes("1.3.0"), false);
+
+        const expected = expectedSupportWindow(
+          verifier,
+          cliRoot,
+          packed.identity.version,
+          publishedRecord.versions
+        );
+        assert.deepEqual(packed.catalog.supportedVersions, expected.supportedVersions);
+        assert.deepEqual(packed.catalog.recoverySources, expected.recoverySources);
 
         const tampered = {
           ...packed.catalog,

@@ -5,4 +5,8 @@
  * file and is not emitted as `dist/upgrade/*`.
  */
 export { listProductionSnapshotVersions, sourceProductionReleasesRoot } from "./release-assets";
-export { assertUpgradeCatalogMatchesPublishedIdentity } from "./release-catalog";
+export {
+  assertUpgradeCatalogMatchesPublishedIdentity,
+  buildProductionReleaseCatalog,
+  selectSupportedReleaseWindow,
+} from "./release-catalog";

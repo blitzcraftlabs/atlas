@@ -15,6 +15,7 @@ export const ISOLATED_AFTER_PARALLEL_SCRIPT_TESTS = Object.freeze([
   "cli-workspace-build.test.mjs",
   "consolidate-production-snapshot-refresh.test.mjs",
   "npm-publication-catalog.test.mjs",
+  "version-pr-prospective-release-state.test.mjs",
   "cli-turbo-build-cache.test.mjs",
 ]);
 
