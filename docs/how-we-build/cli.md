@@ -530,9 +530,10 @@ hands the operation to that exact package. `--to` remains an exact override. `--
 explicit fixture/maintainer override. Normal installed-package usage does not read a consumer
 `releases/` tree. Missing packaged evidence fails closed.
 
-Supported sources are adjacent **published** releases, not neighboring snapshot directories. An
-unpublished snapshot is never a consumer upgrade source. The release that repairs the unpublished
-`1.2.3` snapshot also accepts published `1.2.2` consumers. Repository `releases/0.1.0` and
+Supported sources are adjacent **npm-published** releases. An unpublished snapshot is never a
+consumer upgrade source. A GitHub tag or GitHub Release is not publication proof. The release that
+repairs the unpublished `1.2.3` snapshot also accepts published `1.2.2` consumers. `1.3.0` is a
+GitHub-only release, so it does not take that recovery slot. Repository `releases/0.1.0` and
 `releases/0.2.0` are rehearsal-only and are not public support.
 
 | Option              | Description                                                                  |

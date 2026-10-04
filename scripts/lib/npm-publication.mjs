@@ -6,7 +6,6 @@
  */
 
 import { createHash } from "node:crypto";
-import { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
@@ -20,6 +19,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 
+import { loadPublishedCatalogVerifier } from "../../packages/cli/scripts/load-published-catalog-verifier.mjs";
 import {
   ATLAS_TAG_PATTERN,
   ATLAS_WORKSPACE_PACKAGES,
@@ -560,16 +560,6 @@ export function validatePackedTarball(tarballPath, expected) {
   };
 }
 
-/**
- * @param {{
- *   repoRoot: string;
- *   destinationDir?: string;
- *   skipBuild?: boolean;
- *   requireReleaseTag?: boolean;
- *   pnpmCommand?: string;
- *   env?: NodeJS.ProcessEnv;
- * }} options
- */
 function queryPublishedCliVersions(cwd) {
   const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
   const result = spawnSync(pnpm, ["view", PUBLIC_CLI_PACKAGE_NAME, "versions", "--json"], {
@@ -589,23 +579,40 @@ function queryPublishedCliVersions(cwd) {
   return parsed;
 }
 
-function assertPackedPublishedUpgradeCatalog(packageRoot, catalog, publishedVersions) {
-  const releaseAssets = createRequire(import.meta.url)(
-    path.join(packageRoot, "dist", "upgrade", "release-assets.js")
+/**
+ * Prove the packed catalog matches npm-published predecessors.
+ *
+ * Loads the TypeScript catalog rules through a maintainer esbuild bundle.
+ * Internal upgrade modules are not independently require-able CLI build outputs.
+ *
+ * @param {string} packageRoot
+ * @param {{ current: string; supportedVersions: string[] }} catalog
+ * @param {string[]} publishedVersions
+ */
+export function assertPackedPublishedUpgradeCatalog(packageRoot, catalog, publishedVersions) {
+  const verifier = loadPublishedCatalogVerifier();
+  const snapshots = verifier.listProductionSnapshotVersions(
+    verifier.sourceProductionReleasesRoot(packageRoot)
   );
-  const catalogApi = createRequire(import.meta.url)(
-    path.join(packageRoot, "dist", "upgrade", "release-catalog.js")
-  );
-  const snapshots = releaseAssets.listProductionSnapshotVersions(
-    releaseAssets.sourceProductionReleasesRoot(packageRoot)
-  );
-  catalogApi.assertUpgradeCatalogMatchesPublishedIdentity({
+  verifier.assertUpgradeCatalogMatchesPublishedIdentity({
     catalog,
     snapshotVersions: snapshots,
     publishedVersions,
   });
 }
 
+/**
+ * @param {{
+ *   repoRoot: string;
+ *   destinationDir?: string;
+ *   skipBuild?: boolean;
+ *   requireReleaseTag?: boolean;
+ *   pnpmCommand?: string;
+ *   env?: NodeJS.ProcessEnv;
+ *   verifyPublishedCatalog?: boolean;
+ *   publishedVersions?: string[];
+ * }} options
+ */
 export function packExactPublicCliTarball(options) {
   const repoRoot = options.repoRoot;
   assertPrivateInternalWorkspaces(repoRoot);

@@ -61,6 +61,7 @@ describe("production upgrade support window", () => {
       path.join(PACKAGE_ROOT, "release-assets", PUBLISHED_RELEASES_FILENAME)
     );
     expect(published.versions).not.toContain("1.2.3");
+    expect(published.versions).not.toContain("1.3.0");
     expect(published.versions).toContain("1.2.2");
     expect(published.versions).toContain("1.2.4");
 
@@ -76,8 +77,21 @@ describe("production upgrade support window", () => {
     });
     expect(supported.supportedVersions.at(-1)).toBe(currentVersion);
     expect(supported.supportedVersions).toEqual(
-      currentVersion === "1.2.4" ? ["1.2.2", "1.2.4"] : expect.any(Array)
+      currentVersion === "1.2.4"
+        ? ["1.2.2", "1.2.4"]
+        : currentVersion === "1.3.0"
+          ? ["1.2.2", "1.2.4", "1.3.0"]
+          : currentVersion === "1.3.1"
+            ? ["1.2.2", "1.2.4", "1.3.1"]
+            : expect.any(Array)
     );
+    if (currentVersion === "1.3.0") {
+      expect(supported.recoverySources).toEqual(["1.2.2"]);
+    }
+    if (currentVersion === "1.3.1") {
+      expect(supported.recoverySources).toEqual(["1.2.2"]);
+      expect(supported.supportedVersions).not.toContain("1.3.0");
+    }
     expect(supported.supportedVersions).not.toContain("1.2.3");
     expect(
       supported.supportedVersions.every((version) => !isRehearsalOnlyAtlasVersion(version))
@@ -123,7 +137,7 @@ describe("production upgrade support window", () => {
     expect(window.supportedVersions).not.toContain("1.2.3");
   });
 
-  it("does not keep the 1.2.2 recovery bridge after a later published release", () => {
+  it("does not keep the 1.2.2 recovery bridge after a later npm-published release", () => {
     const window = selectSupportedReleaseWindow({
       currentVersion: "1.3.1",
       snapshotVersions: ["1.2.2", "1.2.3", "1.2.4", "1.3.0", "1.3.1"],
@@ -132,6 +146,32 @@ describe("production upgrade support window", () => {
 
     expect(window.supportedVersions).toEqual(["1.3.0", "1.3.1"]);
     expect(window.recoverySources).toEqual([]);
+  });
+
+  it("keeps 1.2.2 recovery when 1.3.0 has a snapshot but was never published to npm", () => {
+    const window = selectSupportedReleaseWindow({
+      currentVersion: "1.3.1",
+      snapshotVersions: ["1.2.2", "1.2.3", "1.2.4", "1.3.0", "1.3.1"],
+      publishedVersions: ["1.2.2", "1.2.4"],
+    });
+
+    expect(window.supportedVersions).toEqual(["1.2.2", "1.2.4", "1.3.1"]);
+    expect(window.recoverySources).toEqual(["1.2.2"]);
+    expect(window.supportedVersions).not.toContain("1.2.3");
+    expect(window.supportedVersions).not.toContain("1.3.0");
+  });
+
+  it("refuses a 1.3.1 catalog that treats unpublished 1.3.0 as the previous release", () => {
+    expect(() =>
+      assertUpgradeCatalogMatchesPublishedIdentity({
+        catalog: {
+          current: "1.3.1",
+          supportedVersions: ["1.3.0", "1.3.1"],
+        },
+        snapshotVersions: ["1.2.2", "1.2.3", "1.2.4", "1.3.0", "1.3.1"],
+        publishedVersions: ["1.2.2", "1.2.4"],
+      })
+    ).toThrow(/invalid upgrade catalog|no verified public release identity/);
   });
 
   it("refuses a catalog that advertises the unpublished 1.2.3 snapshot", () => {

@@ -37,9 +37,12 @@ export function sortAtlasVersions(versions: string[]): string[] {
 }
 
 /**
- * Current release plus the previous version in the ordered sequence of published releases
- * that also have snapshots. Unpublished snapshot directories are ignored. A declared recovery
- * bridge can add stranded published sources on the first packaged release after a faulty catalog.
+ * Current release plus the previous npm-published release that also has a snapshot.
+ * Publication identity is the npm version list. Snapshot directories, GitHub tags, and
+ * GitHub Releases are not predecessors. A declared recovery bridge can add stranded
+ * published sources on the first later npm-published release after a faulty catalog.
+ * An unpublished release between the faulty catalog and the current version does not
+ * consume that bridge.
  */
 export function selectSupportedReleaseWindow(options: {
   currentVersion: string;
@@ -85,7 +88,7 @@ export function selectSupportedReleaseWindow(options: {
 
   for (const bridge of STRANDED_PUBLISHED_RELEASE_BRIDGES) {
     if (
-      !isImmediatePackagedSuccessor(
+      !isImmediateNpmPublishedSuccessor(
         options.currentVersion,
         bridge.faultyRelease,
         snapshots,
@@ -128,7 +131,12 @@ export function selectSupportedReleaseWindow(options: {
   };
 }
 
-function isImmediatePackagedSuccessor(
+/**
+ * True when no npm-published snapshotted release sits strictly between `faultyRelease`
+ * and `currentVersion`. Unpublished snapshots, including a GitHub-only release, do not
+ * count. The bridge stays available until a later version is actually on npm.
+ */
+function isImmediateNpmPublishedSuccessor(
   currentVersion: string,
   faultyRelease: string,
   snapshots: Set<string>,

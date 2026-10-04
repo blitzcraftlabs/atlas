@@ -15,8 +15,10 @@ export const PUBLISHED_RELEASES_SCHEMA_VERSION = 1;
 
 /**
  * Explicit recovery when a packaged catalog treated an unpublished snapshot as the
- * previous supported release. The bridge applies only on the first later packaged
- * release, so stranded published consumers can reach the fix without a fake hop.
+ * previous supported release. The bridge applies only on the first later release that
+ * is actually published to npm, so stranded published consumers can reach the fix
+ * without a fake hop. A snapshot directory, GitHub tag, or GitHub Release does not
+ * consume the bridge and does not become a supported predecessor.
  */
 export const STRANDED_PUBLISHED_RELEASE_BRIDGES = [
   {

@@ -14,6 +14,7 @@ export const REPO_ROOT = path.resolve(moduleDir, "../..");
 export const ISOLATED_AFTER_PARALLEL_SCRIPT_TESTS = Object.freeze([
   "cli-workspace-build.test.mjs",
   "consolidate-production-snapshot-refresh.test.mjs",
+  "npm-publication-catalog.test.mjs",
   "cli-turbo-build-cache.test.mjs",
 ]);
 
