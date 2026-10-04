@@ -337,10 +337,13 @@ advances `platform.baseline`.
 The release that contains published-release adjacency also accepts consumers recorded at Atlas
 **1.2.2**. `1.2.3` has a snapshot directory and a changelog section, but GitHub Release publication
 failed and `@blitzcraftlabs/atlas@1.2.3` was never published. The already published `1.2.4` catalog
-treated that snapshot as the previous supported release, which stranded `1.2.2` consumers. The first
-packaged release after `1.2.4` keeps `1.2.2` in its support window. Invoke that release's CLI once
-(`pnpm dlx @blitzcraftlabs/atlas@<version> upgrade --to <version>`). It pins the local CLI. Later
-upgrades use `pnpm atlas upgrade`.
+treated that snapshot as the previous supported release, which stranded `1.2.2` consumers. Recovery
+stays on the first later release that is actually published to npm. `v1.3.0` exists as a GitHub tag
+and GitHub Release, and a production snapshot exists, but `@blitzcraftlabs/atlas@1.3.0` was not
+published. That GitHub-only release does not consume the recovery bridge and is not a supported
+predecessor. The next npm-published release keeps `1.2.2` and `1.2.4` in its support window. Invoke
+that release's CLI once (`pnpm dlx @blitzcraftlabs/atlas@<version> upgrade --to <version>`). It pins
+the local CLI. Later upgrades use `pnpm atlas upgrade`.
 
 The canonical `v0.5.0` tag is the previous production baseline for the first public npm CLI. GitHub
 `v1.0.0` is the first stable platform release. The first npm registry version is `1.0.1`. Do not
