@@ -271,6 +271,8 @@ describe("distribution upgrade proof", () => {
           writeJson(path.join(fixture.consumerRoot, "package.json"), {
             name: "test-app",
             version: "0.5.0",
+            scripts: { atlas: "atlas" },
+            devDependencies: { "@blitzcraftlabs/atlas": "0.5.0" },
           });
           writeJson(path.join(fixture.consumerRoot, "atlas.config.json"), {
             schemaVersion: 1,
@@ -333,6 +335,8 @@ describe("distribution upgrade proof", () => {
       writeJson(path.join(fixture.consumerRoot, "package.json"), {
         name: "test-app",
         version: "0.5.0",
+        scripts: { atlas: "atlas" },
+        devDependencies: { "@blitzcraftlabs/atlas": "0.5.0" },
       });
       writeJson(path.join(fixture.consumerRoot, "packages/ui/package.json"), {
         name: "@atlas/ui",

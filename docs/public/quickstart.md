@@ -28,7 +28,12 @@ pnpm dlx @blitzcraftlabs/atlas init my-app
 cd my-app
 pnpm install
 pnpm dev
+pnpm atlas doctor
 ```
+
+`pnpm dlx` is only the bootstrap, before the repository exists. `atlas init` pins
+`@blitzcraftlabs/atlas` to that exact version and adds a `pnpm atlas` script. Later Doctor,
+generate, enable, and upgrade commands use that local CLI.
 
 Requires Node.js `>=22` and pnpm `>=10`. `@blitzcraftlabs/atlas` is live on npm. Current versions
 are listed on [npm](https://www.npmjs.com/package/@blitzcraftlabs/atlas) and

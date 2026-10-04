@@ -38,7 +38,7 @@ test("canonical agent workflow documents source-of-truth hierarchy and vendor ad
   assert.match(agentsWorkflow, /Source-of-truth hierarchy/);
   assert.match(agentsWorkflow, /vendor adapters/i);
   assert.match(agentsWorkflow, /Do not.*encode/i);
-  assert.match(agentsWorkflow, /atlas upgrade --to <version> --dry-run --json/);
+  assert.match(agentsWorkflow, /pnpm atlas upgrade --dry-run/);
   assert.match(agentsWorkflow, /Do not infer blocking from `category` alone/);
   assert.match(agentsWorkflow, /manual-review/);
   assert.match(agentsWorkflow, /security-critical/);

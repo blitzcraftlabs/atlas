@@ -4,16 +4,22 @@ import path from "node:path";
 import { CliError, CliErrorCode } from "../errors/cli-error";
 import { findCliPackageRoot } from "../version";
 
+import { readPublishedReleaseRecord } from "./published-releases";
 import {
   listProductionSnapshotVersions,
   packagedReleaseAssetRoot,
   sourceProductionReleasesRoot,
 } from "./release-assets";
 import {
+  assertUpgradeCatalogMatchesPublishedIdentity,
   buildProductionReleaseCatalog,
   serializeProductionReleaseCatalog,
 } from "./release-catalog";
-import { RELEASE_CATALOG_FILENAME, RELEASE_SNAPSHOT_FILENAME } from "./release-constants";
+import {
+  PUBLISHED_RELEASES_FILENAME,
+  RELEASE_CATALOG_FILENAME,
+  RELEASE_SNAPSHOT_FILENAME,
+} from "./release-constants";
 
 function readPackageVersion(packageRoot: string): string {
   const packageJsonPath = path.join(packageRoot, "package.json");
@@ -32,18 +38,35 @@ function readPackageVersion(packageRoot: string): string {
   return parsed.version;
 }
 
+export function publishedReleaseRecordPath(packageRoot: string): string {
+  return path.join(
+    path.dirname(sourceProductionReleasesRoot(packageRoot)),
+    PUBLISHED_RELEASES_FILENAME
+  );
+}
+
 export function buildPackagedReleaseAssets(options?: {
   packageRoot?: string;
   outputDir?: string;
+  publishedVersions?: string[];
 }): string {
   const packageRoot = path.resolve(options?.packageRoot ?? findCliPackageRoot(__dirname));
   const productionRoot = sourceProductionReleasesRoot(packageRoot);
   const outputDir = options?.outputDir ?? packagedReleaseAssetRoot(packageRoot);
   const currentVersion = readPackageVersion(packageRoot);
-  const availableVersions = listProductionSnapshotVersions(productionRoot);
+  const snapshotVersions = listProductionSnapshotVersions(productionRoot);
+  const publishedVersions =
+    options?.publishedVersions ??
+    readPublishedReleaseRecord(publishedReleaseRecordPath(packageRoot)).versions;
   const catalog = buildProductionReleaseCatalog({
     currentVersion,
-    availableVersions,
+    snapshotVersions,
+    publishedVersions,
+  });
+  assertUpgradeCatalogMatchesPublishedIdentity({
+    catalog,
+    snapshotVersions,
+    publishedVersions,
   });
 
   if (existsSync(outputDir)) {

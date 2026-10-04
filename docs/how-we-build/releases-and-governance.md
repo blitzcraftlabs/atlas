@@ -84,7 +84,7 @@ existed. Do not invent a `0.5.1` or `0.6.0` public npm bootstrap, and do not ret
 | CLI flags         | `--json`, `--cwd`, `--dry-run`, `upgrade --to`, generate `--query` / `--mutation` / `--form` / `--tests`                                                               |
 | CLI behavior      | Documented exit codes; JSON envelopes `{ ok, command, result \| error }`                                                                                               |
 | Generated project | Workspace layout (`apps/web`, `packages/ui`, `packages/config`, `packages/consent`), `atlas.config.json` baseline, ownership/template-sync model, root package scripts |
-| Upgrade           | Packaged snapshots, adjacent current+previous catalog, fail-closed missing evidence, no silent overwrite of consumer-modified synced paths                             |
+| Upgrade           | Packaged snapshots, adjacent published-release catalog, fail-closed missing evidence, no silent overwrite of consumer-modified synced paths                            |
 | Distribution      | Package `@blitzcraftlabs/atlas`, binary `atlas`, Node `>=22`, pnpm `>=10`, GitHub tag `vX.Y.Z` equals npm version                                                      |
 | Architecture      | Consumer-visible `@atlas/ui` / `@atlas/config` / `@atlas/consent` stay source-owned and private; Doctor and generators follow the project contract                     |
 
@@ -215,6 +215,13 @@ After the Version PR merges to `main`, the Release workflow publishes fail-close
 
 The npm job is not a second versioning system. It distributes the same Atlas version that the GitHub
 Release already recorded.
+
+The GitHub Release job runs before npm publication on purpose. npm publication packs only when HEAD
+is the exact canonical `vX.Y.Z` tag, and that tag is created with the GitHub Release. A successful
+GitHub Release is not npm publication. If `npm-publish` fails after the tag and Release exist, leave
+both in place and ship the fix as a later version. The unpublished version stays out of the consumer
+upgrade catalog until `pnpm view @blitzcraftlabs/atlas versions` lists it. `v1.3.0` is that case:
+the tag and GitHub Release exist, and `@blitzcraftlabs/atlas@1.3.0` was not published.
 
 Internal `@atlas/*` workspace packages are not published to npm. `@blitzcraftlabs/atlas` is the only
 public npm package. After the GitHub Release job completes, a separate `npm-publish` job:

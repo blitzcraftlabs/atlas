@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import { atlasDlx, enableCliInvocation } from "../init/cli-release";
+import { enableCliInvocation } from "../init/cli-release";
 import { CLI_PACKAGE_NAME } from "../version";
 
 export type WorkspaceKind = "platform" | "consumer";
@@ -27,12 +27,8 @@ export function detectWorkspaceKind(repoRoot: string): WorkspaceKind {
   return "consumer";
 }
 
-export function atlasCliInvocation(atlasVersion: string, kind: WorkspaceKind): string {
-  if (kind === "platform") {
-    return "pnpm atlas";
-  }
-
-  return atlasDlx(atlasVersion);
+export function atlasCliInvocation(_atlasVersion: string, _kind: WorkspaceKind): string {
+  return "pnpm atlas";
 }
 
 export { enableCliInvocation };

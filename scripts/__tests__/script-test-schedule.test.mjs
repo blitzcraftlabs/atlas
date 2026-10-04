@@ -36,6 +36,7 @@ describe("script test schedule", () => {
     assert.deepEqual(ISOLATED_AFTER_PARALLEL_SCRIPT_TESTS, [
       "cli-workspace-build.test.mjs",
       "consolidate-production-snapshot-refresh.test.mjs",
+      "npm-publication-catalog.test.mjs",
       "cli-turbo-build-cache.test.mjs",
     ]);
 

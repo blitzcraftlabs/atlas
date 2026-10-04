@@ -27,6 +27,8 @@ import {
   selectRepositorySyncedPathChecksumsForUpgrade,
 } from "./baseline";
 import { validateUpgradeSourceBaseline } from "./baseline-validation";
+import { applyConsumerCliPin, planConsumerCliPin } from "./consumer-cli-manifest";
+import { installConsumerDependencies } from "./dependency-install";
 import { applyPackageUpdates, hasUnresolvedRequiredPackageWork } from "./package-apply";
 import { planPackageUpdates } from "./package-plan";
 import { planUpgrade } from "./plan";
@@ -63,6 +65,12 @@ export interface RunUpgradeOptions {
   releasesDir?: string;
   skipValidation?: boolean;
   migrationRegistry?: AtlasMigrationRegistry;
+  /**
+   * Install dependencies after Atlas-managed edits. Fixture `--releases-dir` runs skip this
+   * unless it is set explicitly.
+   */
+  installDependencies?: boolean;
+  installDependenciesRunner?: typeof installConsumerDependencies;
 }
 
 function readConsumerFile(
@@ -351,7 +359,7 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
       validation: { doctor: "skipped", apiGen: "skipped" },
       baselineUpdated: false,
       appliedPaths: [],
-      messages: [`Consumer baseline is already Atlas ${sourceVersion}. No upgrade required.`],
+      messages: [`Atlas is already current (${sourceVersion}).`],
     };
   }
 
@@ -436,8 +444,13 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
     sourceManifest: sourceRelease.manifest,
     targetManifest: targetRelease.manifest,
   });
+  const cliPinPlan = planConsumerCliPin({
+    repoRoot: options.repoRoot,
+    sourceVersion,
+    targetVersion,
+  });
 
-  const items = mergePlanItems(templatePlan.items, packageItems);
+  const items = mergePlanItems(templatePlan.items, [...packageItems, ...cliPinPlan.items]);
   const summary = summarizeMergedItems(items);
   const conflicts = items.filter((item) => item.conflict);
   const hasBlockingConflicts = conflicts.length > 0;
@@ -610,6 +623,67 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
     appliedPaths.push(appliedPackagePath);
   }
 
+  const cliPinApply = applyConsumerCliPin({
+    repoRoot: options.repoRoot,
+    sourceVersion,
+    targetVersion,
+    dryRun: false,
+  });
+  if (cliPinApply.action === "conflict") {
+    status = "blocked";
+    messages.push(
+      "Root package.json CLI pin could not be updated automatically. Baseline was not advanced."
+    );
+    return {
+      sourceVersion,
+      targetVersion,
+      mode,
+      status,
+      summary,
+      items: [...items, ...cliPinApply.items],
+      conflicts: [...conflicts, ...cliPinApply.items],
+      migrations: buildMigrationReports(migrationChain.migrations, mode, migrationResults),
+      validation,
+      baselineUpdated: false,
+      appliedPaths,
+      messages,
+    };
+  }
+  if (cliPinApply.action === "update") {
+    appliedPaths.push("package.json");
+    messages.push(`Pinned @blitzcraftlabs/atlas to ${targetVersion}.`);
+  }
+
+  const shouldInstall = options.installDependencies ?? !options.releasesDir;
+  let dependencyInstall: UpgradeRunResult["dependencyInstall"] = shouldInstall
+    ? "not-run"
+    : "skipped";
+  if (shouldInstall) {
+    const install = (options.installDependenciesRunner ?? installConsumerDependencies)({
+      repoRoot: options.repoRoot,
+    });
+    dependencyInstall = install.status;
+    messages.push(install.message);
+    if (install.status !== "passed") {
+      status = "validation-failed";
+      return {
+        sourceVersion,
+        targetVersion,
+        mode,
+        status,
+        summary,
+        items,
+        conflicts,
+        migrations: buildMigrationReports(migrationChain.migrations, mode, migrationResults),
+        validation,
+        baselineUpdated: false,
+        appliedPaths,
+        messages,
+        dependencyInstall,
+      };
+    }
+  }
+
   const regenerateItems = items.filter((item) => item.action === "regenerate");
   if (regenerateItems.length > 0) {
     const apiGenResult = runApiGen(options.repoRoot);
@@ -635,6 +709,7 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
         baselineUpdated,
         appliedPaths,
         messages,
+        dependencyInstall,
       };
     }
 
@@ -668,6 +743,7 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
         baselineUpdated,
         appliedPaths,
         messages,
+        dependencyInstall,
       };
     }
   }
@@ -723,6 +799,7 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
     baselineUpdated,
     appliedPaths,
     messages,
+    dependencyInstall,
   };
 }
 

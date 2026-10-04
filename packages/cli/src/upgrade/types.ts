@@ -136,4 +136,7 @@ export interface UpgradeRunResult {
   baselineUpdated: boolean;
   appliedPaths: string[];
   messages: string[];
+  latestStable?: string;
+  targetResolution?: "latest" | "explicit";
+  dependencyInstall?: "passed" | "failed" | "skipped" | "not-run";
 }

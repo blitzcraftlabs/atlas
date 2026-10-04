@@ -212,6 +212,10 @@ jobs:
 
   npm-publish:
     name: Publish npm package
+    # The GitHub Release job creates the canonical tag first. This job packs only
+    # from that exact tag, so it cannot run earlier. A green GitHub Release is not
+    # npm publication. If this job fails, the tag and Release stay, and the version
+    # stays out of the consumer upgrade catalog until it exists on npm.
     if:
       github.event_name == 'push' && needs.version-pr.outputs.has-changesets != 'true' &&
       needs.github-release.outputs.action == 'publish'

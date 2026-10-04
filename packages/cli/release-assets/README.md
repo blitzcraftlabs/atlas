@@ -9,7 +9,14 @@ support.
 | Path | Role |
 | ---- | ---- |
 | `production/<version>/` | Full production snapshot generated from that Atlas release tree |
+| `published-releases.json` | Verified npm publications. Snapshot directories are not publication evidence |
 | Packaged `assets/releases/` | Support-window subset copied into the npm CLI at build time |
+
+The packaged support window is the current release plus the previous **npm-published** release that
+has a snapshot. Unpublished directories, including `1.2.3`, are not consumer upgrade sources. A
+GitHub tag, GitHub Release, or snapshot directory is not npm publication; `1.3.0` is GitHub-only.
+The first npm-published release after the faulty `1.2.4` catalog also keeps published `1.2.2` as a
+recovery source.
 
 Generation:
 

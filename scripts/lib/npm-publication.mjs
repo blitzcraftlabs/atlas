@@ -5,8 +5,8 @@
  * to a maintainer. Never rebuild between validation and publication.
  */
 
-import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
@@ -19,6 +19,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 
+import { loadPublishedCatalogVerifier } from "../../packages/cli/scripts/load-published-catalog-verifier.mjs";
 import {
   ATLAS_TAG_PATTERN,
   ATLAS_WORKSPACE_PACKAGES,
@@ -559,6 +560,47 @@ export function validatePackedTarball(tarballPath, expected) {
   };
 }
 
+function queryPublishedCliVersions(cwd) {
+  const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+  const result = spawnSync(pnpm, ["view", PUBLIC_CLI_PACKAGE_NAME, "versions", "--json"], {
+    cwd,
+    encoding: "utf8",
+    shell: false,
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      `Refusing to pack an upgrade catalog without verified published ${PUBLIC_CLI_PACKAGE_NAME} versions.\n${result.stderr || result.stdout || "pnpm view failed"}`
+    );
+  }
+  const parsed = JSON.parse(result.stdout);
+  if (!Array.isArray(parsed) || parsed.some((version) => typeof version !== "string")) {
+    throw new Error("pnpm view versions did not return a string array");
+  }
+  return parsed;
+}
+
+/**
+ * Prove the packed catalog matches npm-published predecessors.
+ *
+ * Loads the TypeScript catalog rules through a maintainer esbuild bundle.
+ * Internal upgrade modules are not independently require-able CLI build outputs.
+ *
+ * @param {string} packageRoot
+ * @param {{ current: string; supportedVersions: string[] }} catalog
+ * @param {string[]} publishedVersions
+ */
+export function assertPackedPublishedUpgradeCatalog(packageRoot, catalog, publishedVersions) {
+  const verifier = loadPublishedCatalogVerifier();
+  const snapshots = verifier.listProductionSnapshotVersions(
+    verifier.sourceProductionReleasesRoot(packageRoot)
+  );
+  verifier.assertUpgradeCatalogMatchesPublishedIdentity({
+    catalog,
+    snapshotVersions: snapshots,
+    publishedVersions,
+  });
+}
+
 /**
  * @param {{
  *   repoRoot: string;
@@ -567,6 +609,8 @@ export function validatePackedTarball(tarballPath, expected) {
  *   requireReleaseTag?: boolean;
  *   pnpmCommand?: string;
  *   env?: NodeJS.ProcessEnv;
+ *   verifyPublishedCatalog?: boolean;
+ *   publishedVersions?: string[];
  * }} options
  */
 export function packExactPublicCliTarball(options) {
@@ -640,6 +684,13 @@ export function packExactPublicCliTarball(options) {
     }
 
     const packed = validatePackedTarball(stagedPath, rebuiltIdentity);
+    if (options.verifyPublishedCatalog !== false) {
+      assertPackedPublishedUpgradeCatalog(
+        packageRoot,
+        packed.catalog,
+        options.publishedVersions ?? queryPublishedCliVersions(repoRoot)
+      );
+    }
     assertPublicationIdentity({
       ...rebuiltIdentity,
       catalogCurrent: packed.catalog.current,

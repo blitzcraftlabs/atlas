@@ -47,12 +47,9 @@ export function atlasDlxForEnable(
 }
 
 export function enableCliInvocation(
-  atlasVersion: string,
-  kind: "platform" | "consumer",
-  options: EnableCliVersionOptions = {}
+  _atlasVersion: string,
+  _kind: "platform" | "consumer",
+  _options: EnableCliVersionOptions = {}
 ): string {
-  if (kind === "platform") {
-    return "pnpm atlas";
-  }
-  return atlasDlxForEnable(atlasVersion, options);
+  return "pnpm atlas";
 }

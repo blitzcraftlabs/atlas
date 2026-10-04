@@ -1,5 +1,14 @@
 #!/usr/bin/env node
-import { existsSync, realpathSync, statSync, readFileSync } from "node:fs";
+import {
+  existsSync,
+  realpathSync,
+  statSync,
+  readFileSync,
+  writeFileSync,
+  cpSync,
+  rmSync,
+  symlinkSync,
+} from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -41,6 +50,7 @@ import {
   selectPreviousSupportedVersion,
 } from "./lib/distribution-upgrade-proof.mjs";
 import { verifyNpmPublishDryRun } from "./lib/npm-publish-dry-run.mjs";
+import { startLocalPackageRegistryProcess } from "./lib/local-package-registry.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 
@@ -92,6 +102,57 @@ function assertExecutable(filePath, label) {
   if ((statSync(filePath).mode & 0o111) === 0) {
     throw new Error(`${label} is not executable: ${filePath}`);
   }
+}
+
+function consumerAtlasBin(generatedRoot) {
+  return path.join(generatedRoot, "node_modules", ".bin", "atlas");
+}
+
+function installHandoffPredecessor(generatedRoot, version) {
+  const source = path.join(generatedRoot, "node_modules", "@blitzcraftlabs", "atlas");
+  const copyRoot = path.join(generatedRoot, ".atlas-handoff-predecessor");
+  rmSync(copyRoot, { recursive: true, force: true });
+  cpSync(source, copyRoot, { recursive: true, dereference: true });
+  const manifestPath = path.join(copyRoot, "package.json");
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  manifest.version = version;
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  const bin = consumerAtlasBin(generatedRoot);
+  rmSync(bin, { force: true });
+  symlinkSync(path.join(copyRoot, "dist", "cli.js"), bin);
+}
+
+function restoreConsumerAtlasBin(generatedRoot) {
+  const bin = consumerAtlasBin(generatedRoot);
+  rmSync(bin, { force: true });
+  symlinkSync(
+    path.join(generatedRoot, "node_modules", "@blitzcraftlabs", "atlas", "dist", "cli.js"),
+    bin
+  );
+}
+
+function extractJsonStdout(stdout) {
+  const line = stdout
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .find((entry) => entry.startsWith("{") && entry.endsWith("}"));
+  if (!line) {
+    return stdout;
+  }
+  return line;
+}
+
+function rewriteInstalledCliVersion(generatedRoot, version) {
+  const manifestPath = path.join(
+    generatedRoot,
+    "node_modules",
+    "@blitzcraftlabs",
+    "atlas",
+    "package.json"
+  );
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  manifest.version = version;
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
 function proveInstalledUpgradeBoundary(options) {
@@ -165,7 +226,10 @@ process.stdout.write(JSON.stringify({ root, catalog }));
   if (unsupported.status === 0) {
     throw new Error("atlas upgrade --to 9.9.9 must fail closed for an unsupported target");
   }
-  if (!/Unsupported target Atlas release 9\.9\.9/.test(unsupportedOutput)) {
+  if (
+    !/Unsupported target Atlas release 9\.9\.9/.test(unsupportedOutput) &&
+    !/No matching version found for @blitzcraftlabs\/atlas@9\.9\.9/.test(unsupportedOutput)
+  ) {
     throw new Error(`Unsupported-target upgrade did not fail clearly:\n${unsupportedOutput}`);
   }
 
@@ -178,18 +242,52 @@ process.stdout.write(JSON.stringify({ root, catalog }));
     return;
   }
 
+  if (catalog.supportedVersions.includes("1.2.3")) {
+    throw new Error("Packaged catalog must not advertise unpublished Atlas 1.2.3");
+  }
+
   proveInstalledCrossVersionUpgrade({
     catalog,
     consumerRoot: generatedRoot,
     cliInstalled,
     runAtlas(args) {
       process.stdout.write(`${CLEAN_ROOM_STAGE_PREFIX} ${CLEAN_ROOM_STAGES.upgrade}\n`);
-      const result = runCommand(atlas, [...args, "--cwd", generatedRoot], {
-        cwd: harness,
-        env: sanitizeCleanRoomEnv({ repoRoot, cwd: harness }),
-        timeout: CLEAN_ROOM_TIMEOUTS_MS.upgrade,
-      });
-      const envelope = parseJsonEnvelope(result.stdout, `atlas ${args.join(" ")}`);
+      const packageBefore = readFileSync(path.join(generatedRoot, "package.json"), "utf8");
+      const lockBefore = existsSync(path.join(generatedRoot, "pnpm-lock.yaml"))
+        ? readFileSync(path.join(generatedRoot, "pnpm-lock.yaml"), "utf8")
+        : "";
+      const contractBefore = readFileSync(path.join(generatedRoot, "atlas.config.json"), "utf8");
+      if (args.includes("--dry-run")) {
+        installHandoffPredecessor(generatedRoot, previous);
+      }
+      const result = runCommand(
+        consumerPnpm.command,
+        generatedProjectPnpmArgs(consumerPnpm, ["atlas", ...args, "--cwd", generatedRoot]),
+        {
+          cwd: generatedRoot,
+          env: sanitizeCleanRoomEnv({ repoRoot, cwd: generatedRoot, extra: consumerToolingEnv }),
+          timeout: CLEAN_ROOM_TIMEOUTS_MS.upgrade,
+        }
+      );
+      if (args.includes("--dry-run")) {
+        const packageAfter = readFileSync(path.join(generatedRoot, "package.json"), "utf8");
+        const lockAfter = existsSync(path.join(generatedRoot, "pnpm-lock.yaml"))
+          ? readFileSync(path.join(generatedRoot, "pnpm-lock.yaml"), "utf8")
+          : "";
+        const contractAfter = readFileSync(path.join(generatedRoot, "atlas.config.json"), "utf8");
+        if (
+          packageAfter !== packageBefore ||
+          lockAfter !== lockBefore ||
+          contractAfter !== contractBefore
+        ) {
+          throw new Error("Upgrade dry-run mutated the consumer working tree");
+        }
+        restoreConsumerAtlasBin(generatedRoot);
+      }
+      const envelope = parseJsonEnvelope(
+        extractJsonStdout(result.stdout),
+        `pnpm atlas ${args.join(" ")}`
+      );
       if (args.includes("--dry-run")) {
         return envelope;
       }
@@ -201,6 +299,30 @@ process.stdout.write(JSON.stringify({ root, catalog }));
       return envelope;
     },
     runValidation() {
+      const version = runStage(
+        CLEAN_ROOM_STAGES.doctor,
+        consumerPnpm.command,
+        generatedProjectPnpmArgs(consumerPnpm, ["atlas", "--version"]),
+        {
+          cwd: generatedRoot,
+          env: sanitizeCleanRoomEnv({
+            repoRoot,
+            cwd: generatedRoot,
+            extra: consumerToolingEnv,
+          }),
+          timeout: CLEAN_ROOM_TIMEOUTS_MS.doctor,
+        }
+      );
+      const reportedVersion = version.stdout
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .at(-1);
+      if (reportedVersion !== catalog.current) {
+        throw new Error(
+          `Post-upgrade pnpm atlas --version did not report ${catalog.current}\n${version.stdout}`
+        );
+      }
       const doctor = runStage(
         CLEAN_ROOM_STAGES.doctor,
         atlas,
@@ -272,6 +394,7 @@ async function main() {
   const pnpm = resolveCommandPath("pnpm");
   const cliPackageRoot = path.join(repoRoot, "packages", "cli");
   let layout;
+  let packageRegistry;
   let failed = false;
 
   try {
@@ -306,6 +429,15 @@ async function main() {
     if (!existsSync(tarballPath)) {
       throw new Error(`Packed CLI tarball was not created at ${tarballPath}`);
     }
+    const packedManifest = JSON.parse(
+      readFileSync(path.join(cliPackageRoot, "package.json"), "utf8")
+    );
+    const packageRegistryServer = await startLocalPackageRegistryProcess({
+      name: PUBLIC_CLI_PACKAGE_NAME,
+      latest: packedManifest.version,
+      versions: [{ version: packedManifest.version, tarballPath }],
+    });
+    packageRegistry = packageRegistryServer;
 
     const harnessEnv = sanitizeCleanRoomEnv({ repoRoot, cwd: layout.harness });
     runStage(CLEAN_ROOM_STAGES.installCli, pnpm, ["add", tarballPath], {
@@ -338,6 +470,18 @@ async function main() {
     }
     assertOutsideRepo(repoRoot, generatedRoot, "Generated project");
     const generatedManifest = assertGeneratedProjectShape(generatedRoot, repoRoot);
+    if (generatedManifest.scripts?.atlas !== "atlas") {
+      throw new Error("Generated package.json is missing the atlas script");
+    }
+    if (
+      generatedManifest.devDependencies?.["@blitzcraftlabs/atlas"] !== generatedManifest.version &&
+      generatedManifest.devDependencies?.["@blitzcraftlabs/atlas"] !==
+        readGeneratedBaseline(generatedRoot)
+    ) {
+      throw new Error(
+        `Generated @blitzcraftlabs/atlas pin is ${String(generatedManifest.devDependencies?.["@blitzcraftlabs/atlas"])}`
+      );
+    }
     const atlasVersion = readGeneratedBaseline(generatedRoot);
     if (generatedManifest.version === atlasVersion) {
       throw new Error("Generated app version must remain independent of the Atlas baseline");
@@ -352,6 +496,10 @@ async function main() {
       cwd: generatedRoot,
       extra: consumerToolingEnv,
     });
+    writeFileSync(
+      path.join(generatedRoot, ".npmrc"),
+      `@blitzcraftlabs:registry=${packageRegistry.url}/\n`
+    );
     const consumerPnpm = resolveGeneratedProjectPnpm({
       generatedRoot,
       env: consumerEnv,
@@ -371,6 +519,41 @@ async function main() {
     );
     if (!existsSync(path.join(generatedRoot, "pnpm-lock.yaml"))) {
       throw new Error("pnpm install did not create pnpm-lock.yaml");
+    }
+    const installedCliManifest = JSON.parse(
+      readFileSync(
+        path.join(generatedRoot, "node_modules", "@blitzcraftlabs", "atlas", "package.json"),
+        "utf8"
+      )
+    );
+    const installedCli = readFileSync(
+      path.join(generatedRoot, "node_modules", "@blitzcraftlabs", "atlas", "dist", "cli.js"),
+      "utf8"
+    );
+    if (installedCliManifest.version !== atlasVersion) {
+      throw new Error(
+        `Installed ${PUBLIC_CLI_PACKAGE_NAME} is ${installedCliManifest.version}, expected packed ${atlasVersion}`
+      );
+    }
+    if (!installedCli.includes("ATLAS_UPGRADE_HANDOFF")) {
+      throw new Error(
+        "Consumer install resolved a CLI build that does not contain upgrade handoff"
+      );
+    }
+    const versionCheck = runStage(
+      CLEAN_ROOM_STAGES.doctor,
+      consumerPnpm.command,
+      generatedProjectPnpmArgs(consumerPnpm, ["atlas", "--version"]),
+      {
+        cwd: generatedRoot,
+        env: consumerEnv,
+        timeout: CLEAN_ROOM_TIMEOUTS_MS.doctor,
+      }
+    );
+    if (!versionCheck.stdout.includes(atlasVersion)) {
+      throw new Error(
+        `pnpm atlas --version did not report ${atlasVersion}\n${versionCheck.stdout}`
+      );
     }
     const workspaceIssues = auditGeneratedWorkspace(generatedRoot);
     if (workspaceIssues.length > 0) {
@@ -492,6 +675,10 @@ async function main() {
     failed = true;
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n`);
+  }
+
+  if (packageRegistry) {
+    await packageRegistry.close();
   }
 
   if (layout?.root) {

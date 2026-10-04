@@ -65,7 +65,7 @@ describe("packaged production release resolution", () => {
       expect(assetRoot.includes(`${path.sep}releases${path.sep}9.9.9`)).toBe(false);
 
       const catalog = readPackagedReleaseCatalog(assetRoot);
-      expect(catalog.policy).toBe("adjacent-supported-releases");
+      expect(catalog.policy).toBe("adjacent-published-releases");
       expect(catalog.supportedVersions).toContain(catalog.current);
       expect(catalog.supportedVersions).not.toContain("0.1.0");
       expect(catalog.supportedVersions).not.toContain("0.2.0");

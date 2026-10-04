@@ -145,7 +145,7 @@ Upgrade state comes from the CLI, not from guessing from Git diffs. Treat the dr
 result as authoritative:
 
 ```bash
-pnpm atlas upgrade --to <version> --dry-run --json
+pnpm atlas upgrade --dry-run --json
 ```
 
 Do not infer blocking from `category` alone. The upgrade command decides whether an upgrade is safe,
@@ -197,12 +197,12 @@ operable via `AGENTS.md`, `pnpm atlas context`, and the CLI.
 
 ## Machine interfaces summary
 
-| Need                    | Command                                              |
-| ----------------------- | ---------------------------------------------------- |
-| Resolved project state  | `pnpm atlas context --json`                          |
-| Generator inventory     | `pnpm atlas generate list --json`                    |
-| Architecture validation | `pnpm atlas doctor --json`                           |
-| Upgrade planning        | `pnpm atlas upgrade --to <version> --dry-run --json` |
-| Contract resolution     | `pnpm atlas:resolve-contract`                        |
+| Need                    | Command                               |
+| ----------------------- | ------------------------------------- |
+| Resolved project state  | `pnpm atlas context --json`           |
+| Generator inventory     | `pnpm atlas generate list --json`     |
+| Architecture validation | `pnpm atlas doctor --json`            |
+| Upgrade planning        | `pnpm atlas upgrade --dry-run --json` |
+| Contract resolution     | `pnpm atlas:resolve-contract`         |
 
 Do not scrape Markdown or CLI help prose for critical structural state when these commands exist.

@@ -313,7 +313,7 @@ export function generateCurrentProductionReleaseSnapshot(repoRoot = process.cwd(
   return { status: "ran" };
 }
 
-export function consolidateAtlasRelease(repoRoot = process.cwd()) {
+export function consolidateAtlasRelease(repoRoot = process.cwd(), options = {}) {
   const version = readJson(
     path.join(ATLAS_WORKSPACE_PACKAGES[0].relativePath, "package.json"),
     repoRoot
@@ -348,8 +348,56 @@ export function consolidateAtlasRelease(repoRoot = process.cwd()) {
 
   syncWorkspaceVersions(version, repoRoot);
   generateCurrentProductionReleaseSnapshot(repoRoot, { replace: true });
+  refreshPublishedReleaseRecord(repoRoot, options);
 
   return { version, mergedBody: workspaceBody, dateLine };
+}
+
+const EXACT_RELEASE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+
+export function refreshPublishedReleaseRecord(repoRoot = process.cwd(), options = {}) {
+  const recordPath = path.join(repoRoot, "packages/cli/release-assets/published-releases.json");
+  if (!existsSync(recordPath)) {
+    return { status: "skipped" };
+  }
+
+  const queried = options.publishedVersions ?? queryPublishedCliVersions(repoRoot);
+  const versions = [
+    ...new Set(queried.filter((version) => EXACT_RELEASE_VERSION.test(version))),
+  ].sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
+  const current = JSON.parse(readFileSync(recordPath, "utf8"));
+  writeFileSync(
+    recordPath,
+    `${JSON.stringify(
+      {
+        schemaVersion: current.schemaVersion ?? 1,
+        packageName: "@blitzcraftlabs/atlas",
+        versions,
+      },
+      null,
+      2
+    )}\n`
+  );
+  return { status: "updated", versions };
+}
+
+function queryPublishedCliVersions(repoRoot) {
+  const pnpm = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+  const result = spawnSync(pnpm, ["view", "@blitzcraftlabs/atlas", "versions", "--json"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    shell: false,
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      `Could not refresh published @blitzcraftlabs/atlas versions from the configured registry.\n${result.stderr || result.stdout || "pnpm view failed"}`
+    );
+  }
+  const parsed = JSON.parse(result.stdout);
+  if (!Array.isArray(parsed)) {
+    throw new Error("pnpm view versions did not return an array");
+  }
+  return parsed.filter((version) => typeof version === "string");
 }
 
 function main() {

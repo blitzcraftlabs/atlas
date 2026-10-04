@@ -7,25 +7,25 @@ build, and local Lighthouse/bundle commands. Heavier tooling is **opt-in** throu
 Atlas publishing, release rehearsal, internal governance, and BlitzCraft runners stay
 maintainer-only.
 
-**Published Atlas 1.1.0 does not contain `atlas enable`.** Until Changesets assigns the next CLI
-version, adoption commands use the placeholder `<next-cli-release>`. Generated docs do **not** guess
-that number and do **not** reuse a consumer `platform.baseline.atlasVersion` that predates `enable`.
-After the Version PR lands, `atlasDlxForEnable` pins `pnpm dlx @blitzcraftlabs/atlas@<assigned>` for
-enable whenever that assigned version is not in `CLI_RELEASES_WITHOUT_ENABLE`. Doctor, generate,
-context, and upgrade stay pinned to the CLI you already use for those commands.
+**Generated projects pin the Atlas CLI.** After `pnpm install`, use `pnpm atlas`. Historical npm
+`1.1.0` did not contain `atlas enable`. Projects created by a CLI that includes `enable` run it
+locally; `atlas upgrade` does not install optional tooling.
 
 ```bash
-pnpm dlx @blitzcraftlabs/atlas@<next-cli-release> enable list --json
-pnpm dlx @blitzcraftlabs/atlas@<next-cli-release> enable storybook --dry-run
+pnpm atlas enable list --json
+pnpm atlas enable storybook --dry-run
+pnpm atlas doctor
+pnpm atlas upgrade --dry-run
 ```
 
-Doctor, generate, context, and upgrade stay pinned to the CLI you already use for those commands.
+`pnpm dlx @blitzcraftlabs/atlas init <name>` remains the bootstrap before a consumer repository
+exists.
 
 ## Default baseline
 
 | Capability                      | How                                                                                          |
 | ------------------------------- | -------------------------------------------------------------------------------------------- |
-| Atlas Doctor                    | `pnpm dlx @blitzcraftlabs/atlas@<version> doctor`                                            |
+| Atlas Doctor                    | `pnpm atlas doctor`                                                                          |
 | Lint / typecheck / test / build | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`                                     |
 | Consumer GitHub CI              | `.github/workflows/ci.yml` (GitHub-hosted Ubuntu)                                            |
 | Local performance               | `pnpm start`, `pnpm perf:lhci`, `pnpm perf:analyze` (no CI workflows until `enable perf-ci`) |

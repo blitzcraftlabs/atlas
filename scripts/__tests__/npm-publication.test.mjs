@@ -1015,3 +1015,25 @@ describe("registry availability polling", () => {
     assert.deepEqual(sleeps, [12]);
   });
 });
+
+describe("published upgrade catalog verifier contract", () => {
+  it("does not require internal dist/upgrade modules the CLI bundle does not emit", () => {
+    const publication = readFileSync(
+      new URL("../lib/npm-publication.mjs", import.meta.url),
+      "utf8"
+    );
+    const bundle = readFileSync(
+      new URL("../../packages/cli/scripts/bundle-cli.mjs", import.meta.url),
+      "utf8"
+    );
+    assert.doesNotMatch(
+      publication,
+      /createRequire\([\s\S]{0,240}upgrade\/release-(?:assets|catalog)\.js/
+    );
+    assert.doesNotMatch(publication, /["']dist\/upgrade\/release-(?:assets|catalog)\.js["']/);
+    assert.match(publication, /loadPublishedCatalogVerifier/);
+    assert.match(bundle, /"release-assets\.js"/);
+    assert.doesNotMatch(bundle, /upgrade\/release-catalog\.js/);
+    assert.doesNotMatch(bundle, /upgrade\/release-assets\.js/);
+  });
+});

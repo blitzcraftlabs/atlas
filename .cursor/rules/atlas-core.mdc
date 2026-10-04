@@ -18,7 +18,7 @@ Vendor guidance never overrides the executable contract or Doctor. If this rule 
 ## Workflow
 
 - **Validate** — `pnpm atlas doctor --json`, then `pnpm lint`, `pnpm typecheck`, `pnpm test` (and broader checks when required).
-- **Upgrades** — `pnpm atlas upgrade --to <version> --dry-run --json`; do not silently resolve merge-required conflicts.
+- **Upgrades** — `pnpm atlas upgrade --dry-run --json`; do not silently resolve merge-required conflicts.
 - **Doctor failures** — Auto-fix only deterministic mechanical issues (for example stale generated artifacts). Surface ownership conflicts; do not overwrite consumer-owned files.
 
 ## Judgment (not duplicated in tooling)
