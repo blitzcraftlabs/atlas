@@ -25,6 +25,16 @@ const outfile = path.join(cacheDir, "published-catalog-verifier.cjs");
  *     snapshotVersions: string[];
  *     publishedVersions: string[];
  *   }) => void;
+ *   selectSupportedReleaseWindow: (options: {
+ *     currentVersion: string;
+ *     snapshotVersions: string[];
+ *     publishedVersions: string[];
+ *   }) => { supportedVersions: string[]; recoverySources: string[] };
+ *   buildProductionReleaseCatalog: (options: {
+ *     currentVersion: string;
+ *     snapshotVersions: string[];
+ *     publishedVersions: string[];
+ *   }) => { current: string; supportedVersions: string[]; recoverySources: string[] };
  * }}
  */
 export function loadPublishedCatalogVerifier() {
@@ -49,7 +59,9 @@ export function loadPublishedCatalogVerifier() {
   if (
     typeof verifier.listProductionSnapshotVersions !== "function" ||
     typeof verifier.sourceProductionReleasesRoot !== "function" ||
-    typeof verifier.assertUpgradeCatalogMatchesPublishedIdentity !== "function"
+    typeof verifier.assertUpgradeCatalogMatchesPublishedIdentity !== "function" ||
+    typeof verifier.selectSupportedReleaseWindow !== "function" ||
+    typeof verifier.buildProductionReleaseCatalog !== "function"
   ) {
     throw new Error(
       "Published catalog verifier bundle is missing the catalog identity checks. Refusing to treat a partial bundle as publication proof."
