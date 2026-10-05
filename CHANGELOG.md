@@ -8,6 +8,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.3.2] - 2026-10-05
+
+### Changed
+
+- Make release and Doctor manifest-alignment tests derive the current checkout version from the
+  repository instead of hardcoding the previous release, so Version PR generation stays protected by
+  pre-push validation after Changesets bumps workspace versions.
+
+### Fixed
+
+- Fix Atlas upgrades so every Atlas-owned package manifest field adopts the target release,
+  including `@atlas/web` and platform dependency pins, while preserving consumer-owned dependencies.
+  Doctor now reports that drift from local release evidence, and the 1.3.1 partial-upgrade state can
+  be repaired.
+
 ## [1.3.1] - 2026-10-04
 
 ### Fixed
@@ -203,7 +218,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Enterprise frontend platform monorepo: `@atlas/web` template app, `@atlas/ui`, `@atlas/config`,
   `@atlas/consent`, conventions, and documentation.
 
-[Unreleased]: https://github.com/blitzcraftlabs/atlas/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/blitzcraftlabs/atlas/compare/v1.3.2...HEAD
+[1.3.2]: https://github.com/blitzcraftlabs/atlas/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/blitzcraftlabs/atlas/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.4...v1.3.0
 [1.2.4]: https://github.com/blitzcraftlabs/atlas/compare/v1.2.3...v1.2.4
