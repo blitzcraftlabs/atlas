@@ -1,5 +1,17 @@
 # @blitzcraftlabs/atlas
 
+## 1.3.2
+
+### Patch Changes
+
+- 29422b0: Fix Atlas upgrades so every Atlas-owned package manifest field adopts the target release,
+  including `@atlas/web` and platform dependency pins, while preserving consumer-owned dependencies.
+  Doctor now reports that drift from local release evidence, and the 1.3.1 partial-upgrade state can
+  be repaired.
+- a6af931: Make release and Doctor manifest-alignment tests derive the current checkout version from
+  the repository instead of hardcoding the previous release, so Version PR generation stays
+  protected by pre-push validation after Changesets bumps workspace versions.
+
 ## 1.3.1
 
 ### Patch Changes
