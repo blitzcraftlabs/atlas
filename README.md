@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/brand/atlas-logo-dark.svg">
+    <img src="docs/assets/brand/atlas-logo-light.svg" alt="Atlas" height="56">
+  </picture>
+</p>
+
 # Atlas
 
 Atlas is an open-source frontend platform for Next.js teams. It gives you a production-shaped

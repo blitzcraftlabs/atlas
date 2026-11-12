@@ -1,5 +1,26 @@
 {
   "assets": {
+    "docs/assets/brand/atlas-logo-dark.svg": {
+      "sha256": "652185688317e40f9d2f29ceacb935225d8a0e45ccf1755645eaa7fbf5df89fe",
+      "origin": "Atlas-generated",
+      "license": "Apache-2.0",
+      "reason": "Atlas logo lockup (mark + wordmark) for dark backgrounds, used in README header via <picture>; wordmark glyphs outlined from JetBrains Mono ExtraBold (SIL OFL 1.1)",
+      "reviewedOn": "2026-11-07"
+    },
+    "docs/assets/brand/atlas-logo-light.svg": {
+      "sha256": "896329649ec54f52ee73e36e5a31e73342aca814c13b29b6e55e4ddada7796ca",
+      "origin": "Atlas-generated",
+      "license": "Apache-2.0",
+      "reason": "Atlas logo lockup (mark + wordmark) for light backgrounds, used in README header; wordmark glyphs outlined from JetBrains Mono ExtraBold (SIL OFL 1.1)",
+      "reviewedOn": "2026-11-07"
+    },
+    "docs/assets/brand/atlas-mark.svg": {
+      "sha256": "6c6e51a12ad716b058b4195307eea2464e2524025b494567176dc3a492ce6c9a",
+      "origin": "Atlas-generated",
+      "license": "Apache-2.0",
+      "reason": "Atlas brand mark (blue square with coordinate cross) for README and docs use; wordmark glyphs outlined from JetBrains Mono ExtraBold (SIL OFL 1.1)",
+      "reviewedOn": "2026-11-07"
+    },
     "packages/ui/visual-tests/__snapshots__/visual.spec.ts/button-all-variants-dark-desktop-chromium.png": {
       "sha256": "3aa67b69729182d46b62e96ed96152b3881bfc61ebf00eb6ce67f138705ccc7a",
       "origin": "Atlas-generated",
