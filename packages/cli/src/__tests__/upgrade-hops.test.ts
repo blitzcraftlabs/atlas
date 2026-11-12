@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -6,6 +6,7 @@ import type { SpawnSyncReturns } from "node:child_process";
 
 import { runUpgradeCommand } from "../commands/upgrade";
 import type { OutputWriter } from "../output/write";
+import { repairStaleWorkspaceVersions } from "../upgrade/hop-normalize";
 import { formatHopPath, parsePublishedVersionsOutput, planUpgradeHops } from "../upgrade/hop-plan";
 import { CLI_PACKAGE_NAME } from "../version";
 
@@ -268,5 +269,63 @@ describe("multi-release atlas upgrade", () => {
       },
     }).catch(() => undefined);
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe("repairStaleWorkspaceVersions", () => {
+  function workspace(versions: Record<string, string>): string {
+    const root = mkdtempSync(path.join(os.tmpdir(), "atlas-stale-"));
+    for (const [relativePath, version] of Object.entries(versions)) {
+      mkdirSync(path.dirname(path.join(root, relativePath)), { recursive: true });
+      writeFileSync(
+        path.join(root, relativePath),
+        `{\n  "name": "x",\n  "version": "${version}"\n}\n`
+      );
+    }
+    return root;
+  }
+
+  it("aligns a version an older CLI left behind and leaves other fields byte-identical", () => {
+    const root = workspace({
+      "apps/web/package.json": "1.2.0",
+      "packages/ui/package.json": "1.3.1",
+    });
+    const repairs = repairStaleWorkspaceVersions({
+      repoRoot: root,
+      baselineVersion: "1.3.1",
+      knownAtlasVersions: PUBLISHED,
+    });
+    expect(repairs).toEqual([
+      { relativePath: "apps/web/package.json", from: "1.2.0", to: "1.3.1" },
+    ]);
+    expect(readFileSync(path.join(root, "apps/web/package.json"), "utf8")).toBe(
+      '{\n  "name": "x",\n  "version": "1.3.1"\n}\n'
+    );
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  it("never touches consumer-chosen versions or dry-run files", () => {
+    const root = workspace({
+      "apps/web/package.json": "0.4.2",
+      "packages/ui/package.json": "1.2.0",
+    });
+    expect(
+      repairStaleWorkspaceVersions({
+        repoRoot: root,
+        baselineVersion: "1.3.1",
+        knownAtlasVersions: PUBLISHED,
+      })
+    ).toHaveLength(1);
+    expect(readFileSync(path.join(root, "apps/web/package.json"), "utf8")).toContain('"0.4.2"');
+    const dry = workspace({ "apps/web/package.json": "1.2.0" });
+    repairStaleWorkspaceVersions({
+      repoRoot: dry,
+      baselineVersion: "1.3.1",
+      knownAtlasVersions: PUBLISHED,
+      dryRun: true,
+    });
+    expect(readFileSync(path.join(dry, "apps/web/package.json"), "utf8")).toContain('"1.2.0"');
+    rmSync(root, { recursive: true, force: true });
+    rmSync(dry, { recursive: true, force: true });
   });
 });

@@ -12,6 +12,7 @@ import {
   executeUpgradeHandoff,
   isUpgradeHandoffChild,
 } from "../upgrade/cli-handoff";
+import { repairStaleWorkspaceVersions } from "../upgrade/hop-normalize";
 import { discoverPublishedReleases, formatHopPath, planUpgradeHops } from "../upgrade/hop-plan";
 import {
   type CommandRunner,
@@ -283,7 +284,7 @@ export async function runUpgradeCommand(options: UpgradeCommandOptions): Promise
   }
 
   if (!handoffChild && !releasesDir) {
-    const hops = planHops({ options, repoRoot, sourceVersion, targetVersion, env });
+    const { hops, published } = planHops({ options, repoRoot, sourceVersion, targetVersion, env });
     if (hops.length > 1) {
       return runMultiHopUpgrade({
         options,
@@ -291,6 +292,7 @@ export async function runUpgradeCommand(options: UpgradeCommandOptions): Promise
         sourceVersion,
         targetVersion,
         hops,
+        published,
         env,
         latestStable,
         targetResolution,
@@ -347,7 +349,7 @@ function planHops(input: {
   sourceVersion: string;
   targetVersion: string;
   env: NodeJS.ProcessEnv;
-}): string[] {
+}): { hops: string[]; published: string[] } {
   const { options, repoRoot, sourceVersion, targetVersion, env } = input;
   let published: string[];
   try {
@@ -356,9 +358,12 @@ function planHops(input: {
       : discoverPublishedReleases({ cwd: repoRoot, spawn: options.spawn, env });
   } catch {
     // Without the published list, keep the direct (adjacent) behavior and its errors.
-    return [targetVersion];
+    return { hops: [targetVersion], published: [] };
   }
-  return planUpgradeHops({ sourceVersion, targetVersion, publishedVersions: published });
+  return {
+    hops: planUpgradeHops({ sourceVersion, targetVersion, publishedVersions: published }),
+    published,
+  };
 }
 
 function emptySummary(): UpgradeRunResult["summary"] {
@@ -387,6 +392,7 @@ function runMultiHopUpgrade(input: {
   sourceVersion: string;
   targetVersion: string;
   hops: string[];
+  published: string[];
   env: NodeJS.ProcessEnv;
   latestStable?: string;
   targetResolution: UpgradeRunResult["targetResolution"];
@@ -414,7 +420,18 @@ function runMultiHopUpgrade(input: {
     hopResults: [],
   };
 
+  const knownAtlasVersions = [...input.published, sourceVersion];
   if (options.dryRun) {
+    for (const repair of repairStaleWorkspaceVersions({
+      repoRoot,
+      baselineVersion: sourceVersion,
+      knownAtlasVersions,
+      dryRun: true,
+    })) {
+      base.messages.push(
+        `Will align ${repair.relativePath}#version ${repair.from} → ${repair.to} (left behind by an older Atlas CLI).`
+      );
+    }
     base.messages.push(
       `Atlas ${sourceVersion} is ${hops.length} published releases behind ${targetVersion}.`,
       `Upgrade path: ${path}`,
@@ -435,9 +452,23 @@ function runMultiHopUpgrade(input: {
   }
 
   let reached = sourceVersion;
+  let repairedBeforeFirstHop = false;
   for (const [index, hop] of hops.entries()) {
     if (!json) {
       options.writer.writeStderr(`\n[${index + 1}/${hops.length}] Atlas ${reached} → ${hop}`);
+    }
+    const repairs = repairStaleWorkspaceVersions({
+      repoRoot,
+      baselineVersion: reached,
+      knownAtlasVersions,
+    });
+    if (index === 0 && repairs.length > 0) {
+      repairedBeforeFirstHop = true;
+    }
+    for (const repair of repairs) {
+      base.messages.push(
+        `Aligned ${repair.relativePath}#version ${repair.from} → ${repair.to} before the ${hop} hop (left behind by an older Atlas CLI).`
+      );
     }
     const handoff = executeUpgradeHandoff({
       request: {
@@ -446,7 +477,7 @@ function runMultiHopUpgrade(input: {
         json,
         // Later hops start from the previous hop's uncommitted changes. Cleanliness was
         // checked once before the first hop.
-        allowDirty: index > 0 ? true : options.allowDirty,
+        allowDirty: index > 0 || repairedBeforeFirstHop ? true : options.allowDirty,
         skipValidation: options.skipValidation,
       },
       spawn: options.spawn,
