@@ -10,6 +10,7 @@
 import { NextResponse } from "next/server";
 
 import { refreshGoogleSession } from "@/lib/auth/providers/google/session-refresh";
+import { refreshOidcSession } from "@/lib/auth/providers/oidc/session-refresh";
 import { refreshReferenceSession } from "@/lib/auth/providers/reference/session-refresh";
 import { readSession } from "@/lib/auth/session";
 
@@ -30,7 +31,11 @@ export async function POST() {
       return NextResponse.json({ error: "No refresh token available" }, { status: 400 });
     }
 
-    await refreshGoogleSession(session);
+    if (session.user.provider === "oidc") {
+      await refreshOidcSession(session);
+    } else {
+      await refreshGoogleSession(session);
+    }
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch {

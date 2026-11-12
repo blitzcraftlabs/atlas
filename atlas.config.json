@@ -51,6 +51,8 @@
         "src/lib/auth/pkce.ts": "sha256:a8b38d2d40a14038ac264e3b9fa37a2f76e06f122622c8e97294503be9d35eeb",
         "src/lib/auth/providers/google.ts": "sha256:e9ad41eccddd28cfa341683ca41d0d4dbbb4f858cb8e469bc687ccd3996d696b",
         "src/lib/auth/providers/google/session-refresh.ts": "sha256:7e41edec66bed316c12256e48ddac8b14e5ff7c2af531a5aa7ff112bb78db926",
+        "src/lib/auth/providers/oidc.ts": "sha256:7ba47e588febc83e8d4ed035af661b0fe2eae7da250a76c8488d7f8993802681",
+        "src/lib/auth/providers/oidc/session-refresh.ts": "sha256:0aa39e868f717e235dd7a27fe8c13aeb5b41a7ef8a06d754943b8198824f28bc",
         "src/lib/auth/server.ts": "sha256:538f7c6c219203135fe3655801c1c4fbcfe4816464e5597182fdb75025d5c83f",
         "src/lib/auth/session.ts": "sha256:746b277f562c590cb3c6d5f50de3dd1f537338aae4af28d147ec292ae6828937",
         "src/lib/auth/state.ts": "sha256:42a861f8649b8b3cf532f5e72dc7c87d52080465a1cb97ed3f0bfa3462eff4e0",
