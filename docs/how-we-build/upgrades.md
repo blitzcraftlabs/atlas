@@ -116,7 +116,7 @@ typical fork behavior — not requirements.
 | Can consumers edit synced template files? | **Yes** — source-owned platform                                             |
 | Effect on upgrades?                       | Checksum diverges from baseline → future replace becomes **merge-required** |
 | Ownership transition?                     | **No silent transition** — manifest classifies; checksums detect edits      |
-| Three-way merge?                          | Manual until `atlas upgrade` provides release snapshots                     |
+| Three-way merge?                          | Manual today; release snapshots now ship in the CLI package (see #111)      |
 | Silent overwrites?                        | **Forbidden** for synced paths when checksum differs                        |
 
 ### During upgrade (by channel)
@@ -137,10 +137,9 @@ typical fork behavior — not requirements.
 Optional consumer tooling (Storybook, visual tests, performance CI, security workflows, Dependabot,
 coverage floors, Git hooks, Cursor adapters, Docker Compose) is **not** applied by `atlas upgrade`,
 including a same-version upgrade. Root `Dockerfile` and `.dockerignore` are repository-level Atlas
-template surfaces, not opt-in enablement. Published Atlas 1.1.0 does not contain `atlas enable`.
-After a CLI release that includes `enable` is published, adopt those capabilities with that CLI —
-which may differ from the recorded platform baseline — using `atlas enable <id> --dry-run` then
-`atlas enable <id>`. See [consumer-tooling.md](consumer-tooling.md).
+template surfaces, not opt-in enablement. Adopt those capabilities with
+`pnpm atlas enable <id> --dry-run` then `pnpm atlas enable <id>` (available since 1.2.0). See
+[consumer-tooling.md](consumer-tooling.md).
 
 ---
 

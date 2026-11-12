@@ -87,10 +87,10 @@ fully installed (`status: installed`), not merely present.
 ## Existing-consumer adoption
 
 1. Keep using your current CLI for Doctor and for any `atlas upgrade --to <platform-version>`. That
-   step does not add Storybook, coverage, or other opt-in files. Do not expect `upgrade --to 1.1.0`
-   to install `atlas enable`.
-2. Invoke a CLI release that contains `enable` (`pnpm dlx @blitzcraftlabs/atlas@<next-cli-release>`
-   until that version is assigned). It may be newer than `platform.baseline.atlasVersion`.
+   step does not add Storybook, coverage, or other opt-in files.
+2. Run `pnpm atlas enable …`. If your baseline is still `1.0.x` or `1.1.0`, upgrade first or invoke
+   `pnpm dlx @blitzcraftlabs/atlas@<1.2.0 or later>` once; that CLI may be newer than
+   `platform.baseline.atlasVersion`.
 3. `… enable docs --dry-run --json` — replace known unmodified shipped docs only. Review conflicts.
 4. Enable each extra capability you want. Run `pnpm install` after Storybook or hooks.
 5. Run that capability's `validationCommand`. File presence is not a passing test.

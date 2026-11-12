@@ -1,12 +1,11 @@
 import { CLI_PACKAGE_NAME } from "../version";
 
 /**
- * Published npm 1.1.0 does not include `atlas enable`. Until Changesets assigns the
- * next CLI version, generated enable commands use this placeholder. Do not invent a
- * version number here — the Version PR replaces it by leaving that release out of
- * `CLI_RELEASES_WITHOUT_ENABLE`.
+ * First npm-published CLI release that contains `atlas enable`. Used as the
+ * minimum pin when neither the running CLI nor the consumer baseline includes
+ * the command (consumers still recorded at 1.0.x / 1.1.0).
  */
-export const ENABLE_CLI_RELEASE_PLACEHOLDER = "<next-cli-release>";
+export const FIRST_CLI_RELEASE_WITH_ENABLE = "1.2.0";
 
 /** CLI releases that exist on npm without the `enable` command. */
 export const CLI_RELEASES_WITHOUT_ENABLE = new Set(["1.0.0", "1.0.1", "1.1.0"]);
@@ -43,7 +42,7 @@ export function atlasDlxForEnable(
   if (cliReleaseIncludesEnable(atlasVersion)) {
     return atlasDlx(atlasVersion);
   }
-  return `pnpm dlx ${CLI_PACKAGE_NAME}@${ENABLE_CLI_RELEASE_PLACEHOLDER}`;
+  return atlasDlx(FIRST_CLI_RELEASE_WITH_ENABLE);
 }
 
 export function enableCliInvocation(

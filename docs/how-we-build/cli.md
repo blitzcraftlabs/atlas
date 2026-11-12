@@ -230,7 +230,7 @@ Failures print command, cwd, exit status, stdout, and stderr for the failing sta
 
 ---
 
-## Commands (v0.1)
+## Commands
 
 ### `atlas init`
 
@@ -449,18 +449,20 @@ references are filtered to files that exist in that workspace.
 ### `atlas enable`
 
 Opt-in consumer tooling. Default init stays lean; heavier quality and convenience tools are adopted
-explicitly. **Published Atlas 1.1.0 does not include this command.** Until Changesets assigns a CLI
-version that contains `enable`, generated consumers invoke
-`pnpm dlx @blitzcraftlabs/atlas@<next-cli-release> enable …`. That pin is **not** the consumer
-`platform.baseline.atlasVersion` when the baseline predates `enable`. After the assigned release is
-out of `CLI_RELEASES_WITHOUT_ENABLE`, generated enable commands use that CLI version.
-`atlas upgrade` does not install optional tooling, including a same-version upgrade to 1.1.0.
+explicitly. `atlas enable` ships in every npm release from **1.2.0** onward, so generated consumers
+run it through the pinned `pnpm atlas` script. `atlas upgrade` never installs optional tooling,
+including a same-version upgrade.
 
 ```bash
-pnpm dlx @blitzcraftlabs/atlas@<next-cli-release> enable list --json
-pnpm dlx @blitzcraftlabs/atlas@<next-cli-release> enable storybook --dry-run
-pnpm dlx @blitzcraftlabs/atlas@<next-cli-release> enable docs
+pnpm atlas enable list --json
+pnpm atlas enable storybook --dry-run
+pnpm atlas enable docs
 ```
+
+Consumers whose `platform.baseline.atlasVersion` is still `1.0.x` or `1.1.0` (releases without
+`enable`) can either upgrade first or invoke a newer CLI once:
+`pnpm dlx @blitzcraftlabs/atlas@<1.2.0 or later> enable …`. That pin does not change the recorded
+baseline.
 
 `enable list --json` reports `status` (`absent` | `partial` | `installed` | `conflicted` |
 `replaceable`) plus `validationCommand`. `installed` means packaged/generated files match; it does
@@ -640,14 +642,16 @@ Machine-readable `--json` output may include:
 
 ## Current CLI commands
 
-| Command                | Capability                                             | Status in v0.1 |
-| ---------------------- | ------------------------------------------------------ | -------------- |
-| `atlas init <project>` | Empty-directory bootstrap from packaged assets         | Implemented    |
-| `atlas init`           | Initialize metadata in an existing compatible checkout | Implemented    |
-| `atlas generate …`     | Feature + page shells                                  | Implemented    |
-| `atlas doctor`         | Diagnostics                                            | Implemented    |
-| `atlas upgrade`        | Planning, dry-run, apply, JSON output                  | Implemented    |
-| Upgrade contract       | Baseline + rehearsal; see [upgrades](upgrades.md)      | Implemented    |
+| Command                     | Capability                                                    | Since |
+| --------------------------- | ------------------------------------------------------------- | ----- |
+| `atlas init <project>`      | Empty-directory bootstrap from packaged assets                | 1.0   |
+| `atlas init`                | Initialize metadata in an existing compatible checkout        | 1.0   |
+| `atlas generate …`          | Feature + page shells; `generate list` inventory              | 1.0   |
+| `atlas context`             | Resolved project contract for humans and agents               | 1.0   |
+| `atlas doctor`              | Contract and architecture diagnostics                         | 1.0   |
+| `atlas sync infrastructure` | Starter → reference template sync (maintainer checkouts)      | 1.0   |
+| `atlas upgrade`             | Planning, dry-run, apply, JSON output, latest-release handoff | 1.0   |
+| `atlas enable <id>`         | Opt-in consumer tooling capabilities                          | 1.2   |
 
 The CLI exposes explicit command registration, shared context loading, exit codes, and output
 conventions so additional commands can be added without redesigning the foundation.
