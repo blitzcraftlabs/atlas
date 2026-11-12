@@ -42,6 +42,12 @@ user info, plus a `session-refresh` module. Atlas ships:
 Selecting a provider is configuration plus a route (`/api/auth/<id>/start|callback`), so consumers
 do not edit synced files and upgrade checksums stay intact.
 
+OIDC settings are read by a self-contained Atlas-owned module (`src/config/oidc.ts`) instead of
+extending the shared env schema or the application config facade. Extending those would force every
+upgrading consumer to edit their own `src/env/**` and `src/config/{schema,server}.ts` to keep
+typechecking. Routes are starter-owned: existing consumers copy `src/app/api/auth/oidc/**` from the
+starter (and the `oidc` branch of `/api/auth/refresh`) when they adopt OIDC.
+
 ## Consequences
 
 ### Positive

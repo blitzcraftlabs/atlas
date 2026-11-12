@@ -84,12 +84,6 @@ export function getServerConfig(): Config {
     auth: {
       googleClientId: serverEnv.GOOGLE_CLIENT_ID,
       googleClientSecret: serverEnv.GOOGLE_CLIENT_SECRET,
-      oidc: {
-        issuer: serverEnv.AUTH_OIDC_ISSUER,
-        clientId: serverEnv.AUTH_OIDC_CLIENT_ID,
-        clientSecret: serverEnv.AUTH_OIDC_CLIENT_SECRET,
-        scopes: serverEnv.AUTH_OIDC_SCOPES?.split(/\s+/).filter(Boolean),
-      },
       sessionSecret: serverEnv.AUTH_SESSION_SECRET,
       sessionTtlSeconds: serverEnv.AUTH_SESSION_TTL_SECONDS ?? 604800,
     },

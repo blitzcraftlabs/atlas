@@ -9,7 +9,7 @@
 
 import "server-only";
 
-import { getServerConfig } from "@/config/server";
+import { getOidcConfig } from "@/config/oidc";
 
 import { createSessionCookie } from "../../session";
 import { discoverOidcProvider, refreshOidcTokens } from "../oidc";
@@ -24,7 +24,7 @@ export async function refreshOidcSession(session: SessionData): Promise<SessionD
     throw new Error(`Refresh not implemented for provider: ${session.user.provider}`);
   }
 
-  const { oidc } = getServerConfig().auth;
+  const oidc = getOidcConfig();
   if (!oidc.issuer || !oidc.clientId) {
     throw new Error("OIDC is not configured");
   }

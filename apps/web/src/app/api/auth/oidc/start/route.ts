@@ -10,6 +10,7 @@
 
 import { NextResponse } from "next/server";
 
+import { getOidcConfig } from "@/config/oidc";
 import { getServerConfig } from "@/config/server";
 import { generateChallenge, generateVerifier } from "@/lib/auth/pkce";
 import { buildOidcAuthUrl, discoverOidcProvider } from "@/lib/auth/providers/oidc";
@@ -21,7 +22,7 @@ import type { NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const config = getServerConfig();
   const appUrl = config.app.url || "http://localhost:3000";
-  const { oidc } = config.auth;
+  const oidc = getOidcConfig();
 
   if (!oidc.issuer || !oidc.clientId) {
     const errorUrl = new URL("/login", appUrl);

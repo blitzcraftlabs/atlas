@@ -241,27 +241,6 @@ export const ServerEnvSchema = {
   GOOGLE_CLIENT_SECRET: z.string().optional(),
 
   /**
-   * Generic OpenID Connect issuer URL (https). Enables /api/auth/oidc/* when set together with
-   * AUTH_OIDC_CLIENT_ID. Endpoints are read from the issuer's discovery document.
-   *
-   * @example 'https://your-tenant.eu.auth0.com'
-   */
-  AUTH_OIDC_ISSUER: z.string().url().optional(),
-
-  /** OIDC client ID registered with the issuer. */
-  AUTH_OIDC_CLIENT_ID: z.string().optional(),
-
-  /**
-   * OIDC client secret. Omit for public clients that rely on PKCE only.
-   *
-   * @security Keep this secret secure - never expose to client
-   */
-  AUTH_OIDC_CLIENT_SECRET: z.string().optional(),
-
-  /** Space-separated scopes. Default: "openid email profile offline_access". */
-  AUTH_OIDC_SCOPES: z.string().optional(),
-
-  /**
    * Secret key used to encrypt/sign session cookies.
    * Must be at least 32 characters for secure encryption.
    * Optional in test environment.

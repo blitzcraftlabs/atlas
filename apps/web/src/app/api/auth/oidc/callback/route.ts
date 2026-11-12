@@ -9,6 +9,7 @@
 
 import { NextResponse } from "next/server";
 
+import { getOidcConfig } from "@/config/oidc";
 import { getServerConfig } from "@/config/server";
 import {
   discoverOidcProvider,
@@ -30,7 +31,7 @@ function loginError(appUrl: string, code: string) {
 export async function GET(request: NextRequest) {
   const config = getServerConfig();
   const appUrl = config.app.url || "http://localhost:3000";
-  const { oidc } = config.auth;
+  const oidc = getOidcConfig();
 
   if (!oidc.issuer || !oidc.clientId) {
     return loginError(appUrl, "oauth_not_configured");

@@ -18,6 +18,7 @@
     "src/components/navigation/AppBreadcrumbs.tsx",
     "src/config/client.ts",
     "src/config/index.ts",
+    "src/config/oidc.ts",
     "src/lib/analytics/adapters/eslint-boundaries/adapter-fixture.ts",
     "src/lib/analytics/adapters/ga.tsx",
     "src/lib/analytics/adapters/posthog.ts",

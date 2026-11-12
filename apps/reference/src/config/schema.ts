@@ -166,17 +166,6 @@ const authConfigSchema = z.object({
   googleClientSecret: z.string().optional(),
 
   /**
-   * Generic OpenID Connect issuer (AUTH_OIDC_*). Enabled when issuer and clientId are set.
-   */
-  oidc: z.object({
-    issuer: z.string().url().optional(),
-    clientId: z.string().optional(),
-    /** @security Server-only - never expose to client */
-    clientSecret: z.string().optional(),
-    scopes: z.array(z.string().min(1)).optional(),
-  }),
-
-  /**
    * Session encryption secret.
    * Must be at least 32 characters.
    * @security Server-only - never expose
