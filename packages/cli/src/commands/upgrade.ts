@@ -510,12 +510,21 @@ function runMultiHopUpgrade(input: {
   return 0;
 }
 
-function parseChildJson(stdout: string | undefined): unknown {
+/** Last JSON line of a hop's stdout; `pnpm dlx` progress lines can precede the envelope. */
+export function parseChildJson(stdout: string | undefined): unknown {
   if (!stdout) return undefined;
-  try {
-    const parsed = JSON.parse(stdout) as { result?: unknown };
-    return parsed.result ?? parsed;
-  } catch {
-    return undefined;
+  const lines = stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("{"))
+    .reverse();
+  for (const line of lines) {
+    try {
+      const parsed = JSON.parse(line) as { result?: unknown };
+      return parsed.result ?? parsed;
+    } catch {
+      // keep looking
+    }
   }
+  return undefined;
 }

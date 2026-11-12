@@ -4,7 +4,7 @@ import path from "node:path";
 
 import type { SpawnSyncReturns } from "node:child_process";
 
-import { runUpgradeCommand } from "../commands/upgrade";
+import { parseChildJson, runUpgradeCommand } from "../commands/upgrade";
 import type { OutputWriter } from "../output/write";
 import { repairStaleWorkspaceVersions } from "../upgrade/hop-normalize";
 import { formatHopPath, parsePublishedVersionsOutput, planUpgradeHops } from "../upgrade/hop-plan";
@@ -327,5 +327,16 @@ describe("repairStaleWorkspaceVersions", () => {
     expect(readFileSync(path.join(dry, "apps/web/package.json"), "utf8")).toContain('"1.2.0"');
     rmSync(root, { recursive: true, force: true });
     rmSync(dry, { recursive: true, force: true });
+  });
+});
+
+describe("parseChildJson", () => {
+  it("reads the JSON envelope after pnpm dlx progress output", () => {
+    const stdout = [
+      "Progress: resolved 7, reused 6, downloaded 1, added 7, done",
+      JSON.stringify({ ok: true, result: { status: "success" } }),
+    ].join("\n");
+    expect(parseChildJson(stdout)).toEqual({ status: "success" });
+    expect(parseChildJson("no json")).toBeUndefined();
   });
 });
