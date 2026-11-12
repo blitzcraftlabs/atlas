@@ -1,8 +1,11 @@
 # Atlas Showcase follow-up audit
 
-**Date:** 2026-08-16 (original); **access-model update:** 2026-09-11  
-**Status:** Showcase **not** corrected by this Atlas repository. Apply remaining Showcase copy
-changes on [shipwithatlas.com](https://shipwithatlas.com) separately.
+**Date:** 2026-08-16 (original); **access-model update:** 2026-09-11; **closed:** 2026-11-12  
+**Status:** **Closed.** The `atlas-showcase` repository is retired and archived.
+[shipwithatlas.com](https://shipwithatlas.com) is now built from
+[`blitzcraftlabs/shipwithatlas`](https://github.com/blitzcraftlabs/shipwithatlas), and its copy was
+verified against the checklist below on 2026-11-12. Keep this document as the historical record.
+Track future marketing-copy alignment in the [claims register](claims-register.md).
 
 This document lists Showcase claims and CTAs that require alignment with Atlas repository evidence.
 Exact Showcase paths may drift; verify against the current showcase repository before editing.
@@ -155,13 +158,23 @@ Coordinate Showcase copy so it does not outpace Atlas evidence in the claims reg
 
 ## Verification after Showcase PR merges
 
-- [ ] No CTA implies a private or engagement-only source repository
-- [ ] Hero claims use qualified terminology definitions from the claims register
-- [ ] Product lists use exact built-from vs migrated-toward categories
-- [ ] Proof sections label evidence provenance
-- [ ] Licensing language matches Apache-2.0
+Verified on 2026-11-12 against `blitzcraftlabs/shipwithatlas` (`apps/web/src/lib/marketing/**`,
+`apps/web/src/components/**`):
 
-## Do not claim complete until
+- [x] No CTA implies a private or engagement-only source repository. GitHub CTAs link the public
+      `blitzcraftlabs/atlas` repository.
+- [x] Hero claims use qualified terminology. There is no unqualified "production-ready",
+      "battle-tested", "WCAG compliant", "enterprise security" or coverage claim.
+- [x] Product lists use exact built-from vs migrated-toward categories (`BUILT_WITH_PRODUCTS`
+      `status` / `statusLabel`). **Open:** the site lists Launa as "Built from Atlas", but Launa is
+      not in the claims register [production history](claims-register.md#production-history). Add it
+      to the register with evidence, or remove it from the site.
+- [x] Proof sections label evidence provenance. No uptime, adoption or independent-verification
+      claims appear.
+- [x] Licensing language matches Apache-2.0 (marketing footer). No MIT badge remains.
 
-A separate atlas-showcase pull request merging the above changes has shipped. This Atlas repository
-commit does **not** constitute Showcase correction.
+## Completion
+
+The original completion condition (a separate `atlas-showcase` pull request) no longer applies: that
+repository was retired rather than corrected. Completion was verified directly against the
+`shipwithatlas` source above.
