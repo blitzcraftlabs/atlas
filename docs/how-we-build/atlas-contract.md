@@ -190,6 +190,31 @@ synchronized with the spec.
 Generalizing the contract to multiple generated schema paths is deferred — see the repository issue
 tracker for follow-up work.
 
+### Custom generators (schema v1, optional)
+
+`generators` declares consumer-owned structural generators. Each key is a kebab-case id (not
+`feature`, `page`, or `list`). Every file under `templates` is rendered into `target`; paths and
+contents may use `{{name}}`, `{{kebab}}`, `{{camel}}`, `{{pascal}}`, and `{{title}}`, and a trailing
+`.tmpl` suffix is stripped. Existing files are conflicts and are never overwritten.
+
+```json
+{
+  "generators": {
+    "data-table": {
+      "description": "Feature with a sortable data table.",
+      "templates": "tools/generators/data-table",
+      "target": "apps/web/src/features/{{kebab}}",
+      "argument": { "name": "name", "description": "Table name in kebab-case." },
+      "followUp": ["Export {{pascal}}Table from the feature index."]
+    }
+  }
+}
+```
+
+`atlas generate list --json` and `atlas context --json` list custom generators with
+`source: "custom"`, so coding agents discover them the same way as built-ins. Templates and output
+are consumer-owned; `atlas upgrade` never touches them.
+
 ### Boundaries
 
 Architectural facts for generators, Doctor, and agents — not ESLint rule implementations.
