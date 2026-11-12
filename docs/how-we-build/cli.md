@@ -466,9 +466,10 @@ pnpm dlx @blitzcraftlabs/atlas@<next-cli-release> enable docs
 `replaceable`) plus `validationCommand`. `installed` means packaged/generated files match; it does
 not mean the validation command passed.
 
-Capabilities: `docs`, `storybook`, `visual`, `perf-ci`, `security`, `updates`, `coverage`, `hooks`,
-`cursor`, `docker`. `visual` requires `storybook` to be fully installed. Shipped visual PNG
-baselines are compared only in `mcr.microsoft.com/playwright:v<playwright-version>-noble` via
+Capabilities: `docs`, `storybook`, `visual`, `perf-ci`, `security`, `updates`, `upgrades`,
+`coverage`, `hooks`, `cursor`, `docker`. `visual` requires `storybook` to be fully installed.
+Shipped visual PNG baselines are compared only in
+`mcr.microsoft.com/playwright:v<playwright-version>-noble` via
 `pnpm --filter @atlas/ui test:visual:docker`; generated comparison CI never updates snapshots.
 Enablement plans all writes before applying them, copies packaged assets, and merges `package.json`
 keys without overwriting customized files. Known-stale documentation is replaced only when the full

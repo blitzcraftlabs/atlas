@@ -1,0 +1,52 @@
+# Atlas upgrade bot. Consumer-owned after `atlas enable upgrades`.
+#
+# Weekly, it plans `pnpm atlas upgrade`. When a newer Atlas release exists it applies the upgrade
+# on the `atlas/upgrade` branch and opens (or updates) one pull request. If the upgrade needs a
+# human (merge-required files or failed validation) it opens one issue instead and changes nothing.
+#
+# Repository setting required: Settings → Actions → General → "Allow GitHub Actions to create and
+# approve pull requests". Pull requests opened with GITHUB_TOKEN do not trigger other workflows; set
+# an ATLAS_UPGRADE_TOKEN secret (fine-grained PAT or GitHub App token) if CI must run on them.
+name: Atlas upgrade
+
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: atlas-upgrade
+  cancel-in-progress: false
+
+jobs:
+  upgrade:
+    name: Plan and propose Atlas upgrade
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          token: ${{ secrets.ATLAS_UPGRADE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Propose Atlas upgrade
+        env:
+          GH_TOKEN: ${{ secrets.ATLAS_UPGRADE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: node scripts/atlas-upgrade-pr.mjs
