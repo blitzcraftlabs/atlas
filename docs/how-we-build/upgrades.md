@@ -315,10 +315,11 @@ The first npm-distributed Atlas CLI (`@blitzcraftlabs/atlas@1.0.1`, published fr
 | Promise               | Detail                                                                                                                              |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | **We support**        | Adjacent upgrades between published Atlas releases that have production snapshots. Unpublished snapshot directories are not support |
+| **We support**        | Multi-release upgrades: `atlas upgrade` walks every published release between baseline and target, one adjacent hop at a time       |
 | **We support**        | A one-release recovery bridge when a faulty catalog excluded a real published predecessor                                           |
 | **We support**        | Deterministic conflict detection for synced template infrastructure                                                                 |
 | **We support**        | Regeneration for generated artifacts                                                                                                |
-| **We do not support** | Unlimited historical upgrades, including rehearsal snapshots `0.1.0` / `0.2.0`                                                      |
+| **We do not support** | Upgrades from rehearsal snapshots `0.1.0` / `0.2.0`                                                                                 |
 | **We do not support** | Silent overwrite of consumer-modified synced files                                                                                  |
 | **We do not support** | Perpetual automatic upgrades with zero review                                                                                       |
 | Pre-1.0 proving line  | Breaking changes were allowed with changelog + migration docs; they are historical                                                  |

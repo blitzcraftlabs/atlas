@@ -530,7 +530,17 @@ hands the operation to that exact package. `--to` remains an exact override. `--
 explicit fixture/maintainer override. Normal installed-package usage does not read a consumer
 `releases/` tree. Missing packaged evidence fails closed.
 
-Supported sources are adjacent **npm-published** releases. An unpublished snapshot is never a
+When `platform.baseline` is more than one published release behind the target, `atlas upgrade` plans
+a **multi-release path** from the npm version list (for example
+`1.1.0 → 1.2.0 → 1.2.1 → 1.2.2 → 1.3.1 → 1.3.2 → 1.3.3`). Each hop runs that release's CLI, which
+applies, installs, validates with Doctor, and advances the baseline before the next hop starts. The
+walk stops at the first blocked or failed hop; rerun `pnpm atlas upgrade` to continue from the new
+baseline. `--dry-run --json` returns the full path in `result.hops` without spawning any CLI. The
+worktree must be clean before the first hop (or pass `--allow-dirty`). Consumers whose local CLI
+predates multi-release support run it once with the latest CLI:
+`pnpm dlx @blitzcraftlabs/atlas@latest upgrade`.
+
+Each individual CLI supports adjacent **npm-published** releases. An unpublished snapshot is never a
 consumer upgrade source. A GitHub tag or GitHub Release is not publication proof. The release that
 repairs the unpublished `1.2.3` snapshot also accepts published `1.2.2` consumers. `1.3.0` is a
 GitHub-only release, so it does not take that recovery slot. Repository `releases/0.1.0` and
