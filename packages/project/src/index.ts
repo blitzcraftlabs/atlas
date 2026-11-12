@@ -43,9 +43,9 @@ export {
   atlasProjectContractSchema,
   type CustomGeneratorDefinition,
   parseAtlasProjectContract,
-  RESERVED_GENERATOR_IDS,
   type PlatformBaseline,
   type RawAtlasProjectContract,
+  RESERVED_GENERATOR_IDS,
   type ResolvedAtlasProject,
   resolvedAtlasProjectSchema,
 } from "./schema";
