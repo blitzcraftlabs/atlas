@@ -170,8 +170,11 @@ upgrade plan (patch-safe | merge-required | migration-required | manual)
 
 ## Conflict policy
 
-1. **Record** checksums at bootstrap / post-upgrade (`atlas upgrade`). Capture must be **strict** —
-   missing manifest synced paths fail baseline recording rather than producing incomplete evidence.
+1. **Record** checksums at bootstrap / post-upgrade (`atlas upgrade`). After an upgrade, application
+   synced-path checksums record the **Atlas target-release content**, not the consumer's file, so a
+   customization Atlas did not touch in that release stays detectable as modified on the next one.
+   Capture must be **strict** — missing manifest synced paths fail baseline recording rather than
+   producing incomplete evidence.
 2. **Before any synced-path write**, compare consumer checksum to baseline checksum.
 3. **Equal** (proven unchanged) → consumer has not edited since baseline → safe replace allowed.
 4. **Already equal to the target release** → patch-safe skip; do not rewrite. Exact target content
