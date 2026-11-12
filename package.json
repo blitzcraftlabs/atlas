@@ -66,6 +66,8 @@
     "release:rehearse": "node scripts/release-rehearse.mjs",
     "release:publish": "node scripts/publish-atlas-release.mjs",
     "release:publish:dry-run": "node scripts/publish-atlas-release.mjs --dry-run --skip-checks",
+    "release:finalize": "node scripts/finalize-atlas-release.mjs",
+    "release:consistency": "node scripts/check-release-consistency.mjs",
     "distribution:verify": "node scripts/verify-distribution-clean-room.mjs",
     "distribution:prepare-publish": "node scripts/prepare-npm-publish.mjs",
     "distribution:publish-npm": "node scripts/publish-npm-package.mjs",

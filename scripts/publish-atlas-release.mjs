@@ -13,6 +13,7 @@ import { pathToFileURL } from "node:url";
 
 import { generateSpdxSbom } from "./generate-sbom.mjs";
 import { appendGithubOutput } from "./lib/npm-publication.mjs";
+import { githubReleaseCreateArgs } from "./lib/release-consistency.mjs";
 import {
   PublicationError,
   REQUIRED_RELEASE_CHECK_WORKFLOWS,
@@ -114,6 +115,7 @@ function loadGithubState(options) {
     existingTags,
     existingReleases: releases.map((release) => ({
       tagName: release.tag_name,
+      draft: release.draft === true,
       sha: resolveReleaseSha(release, existingTags),
       assets: (release.assets ?? []).map((asset) => asset.name).filter(Boolean),
     })),
@@ -227,23 +229,15 @@ function uploadCanonicalReleaseAssets(options, tag, sbomPath, { clobber }) {
 }
 
 function createGithubRelease(options, decision, notesPath, sbomPath) {
-  const args = [
-    "release",
-    "create",
-    decision.tag,
-    "--repo",
-    options.ownerRepo,
-    "--target",
-    options.targetSha,
-    "--title",
-    `Atlas ${decision.version}`,
-    "--notes-file",
-    notesPath,
-  ];
-  if (decision.prerelease) {
-    args.push("--prerelease");
-  }
-  runGh(args, options);
+  // Draft until npm publication is verified; finalize-atlas-release.mjs makes it public.
+  runGh(
+    githubReleaseCreateArgs(decision, {
+      ownerRepo: options.ownerRepo,
+      targetSha: options.targetSha,
+      notesPath,
+    }),
+    options
+  );
   uploadCanonicalReleaseAssets(options, decision.tag, sbomPath, { clobber: false });
 }
 
