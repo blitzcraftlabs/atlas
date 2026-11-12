@@ -91,6 +91,18 @@ export const serverEnv = {
   get GOOGLE_CLIENT_SECRET() {
     return process.env.GOOGLE_CLIENT_SECRET;
   },
+  get AUTH_OIDC_ISSUER() {
+    return process.env.AUTH_OIDC_ISSUER;
+  },
+  get AUTH_OIDC_CLIENT_ID() {
+    return process.env.AUTH_OIDC_CLIENT_ID;
+  },
+  get AUTH_OIDC_CLIENT_SECRET() {
+    return process.env.AUTH_OIDC_CLIENT_SECRET;
+  },
+  get AUTH_OIDC_SCOPES() {
+    return process.env.AUTH_OIDC_SCOPES;
+  },
   get AUTH_SESSION_SECRET() {
     return process.env.AUTH_SESSION_SECRET || "test-session-secret-32-chars-min";
   },

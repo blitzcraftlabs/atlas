@@ -160,3 +160,63 @@ describe("fetchOidcUserInfo", () => {
     ).rejects.toThrow("sub");
   });
 });
+
+describe("provider edge cases", () => {
+  it("refetches discovery after the cache is cleared and surfaces HTTP failures", async () => {
+    await expect(discoverOidcProvider(ISSUER, fetchReturning([{}, 503]).impl)).rejects.toThrow(
+      "status 503"
+    );
+    const { impl, calls } = fetchReturning([DISCOVERY]);
+    await discoverOidcProvider(
+      "http://localhost:8080",
+      fetchReturning([{ ...DISCOVERY, issuer: "http://localhost:8080" }]).impl
+    );
+    await discoverOidcProvider(ISSUER, impl);
+    clearOidcDiscoveryCache();
+    await discoverOidcProvider(ISSUER, impl);
+    expect(calls).toHaveLength(2);
+  });
+
+  it("applies token defaults and rejects a response without access_token", async () => {
+    const tokens = await exchangeOidcCode(
+      DISCOVERY,
+      { issuer: ISSUER, clientId: "c", clientSecret: "s" },
+      { code: "c", codeVerifier: "v", redirectUri: "r" },
+      fetchReturning([{ access_token: "at", id_token: "idt" }]).impl
+    );
+    expect(tokens).toMatchObject({ refreshToken: null, idToken: "idt", tokenType: "Bearer" });
+    await expect(
+      refreshOidcTokens(
+        DISCOVERY,
+        { issuer: ISSUER, clientId: "c" },
+        "rt",
+        fetchReturning([{}]).impl
+      )
+    ).rejects.toThrow("access_token");
+  });
+
+  it("uses the name claim, tolerates missing optional claims, and surfaces userinfo failures", async () => {
+    await expect(
+      fetchOidcUserInfo(DISCOVERY, "at", fetchReturning([{ sub: "s", name: "Real Name" }]).impl)
+    ).resolves.toMatchObject({ name: "Real Name", email: "", avatarUrl: null });
+    await expect(
+      fetchOidcUserInfo(DISCOVERY, "at", fetchReturning([{ sub: "s" }]).impl)
+    ).resolves.toMatchObject({ name: null });
+    await expect(
+      fetchOidcUserInfo(DISCOVERY, "at", fetchReturning([{}, 401]).impl)
+    ).rejects.toThrow("status 401");
+  });
+
+  it("passes explicit scopes through to the authorization URL", () => {
+    const url = new URL(
+      buildOidcAuthUrl(DISCOVERY, {
+        clientId: "c",
+        redirectUri: "r",
+        codeChallenge: "x",
+        state: "s",
+        scopes: ["openid"],
+      })
+    );
+    expect(url.searchParams.get("scope")).toBe("openid");
+  });
+});
