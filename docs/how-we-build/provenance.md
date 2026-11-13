@@ -322,13 +322,14 @@ Example snapshot results (replace by re-running the commands above at audit time
 ## 10. Unknown / review-required licenses
 
 All review-required packages at HEAD have explicit entries in
-[`license-exceptions.json`](../../license-exceptions.json) (23 packages):
+[`license-exceptions.json`](../../license-exceptions.json) (24 packages):
 
 | Package family         | Declared license        | Disposition                               |
 | ---------------------- | ----------------------- | ----------------------------------------- |
 | `harmony-reflect`      | (Apache-2.0 OR MPL-1.1) | Reviewed — transitive dual-license        |
 | `@img/sharp-libvips-*` | LGPL-3.0-or-later       | Reviewed — optional native transitive dep |
 | `@sentry/cli*`         | FSL-1.1-MIT             | Reviewed — optional dev/build tool        |
+| `sentry`               | FSL-1.1-Apache-2.0      | Reviewed — dev-only LHCI transitive       |
 | `axe-core`             | MPL-2.0                 | Reviewed — Storybook a11y transitive      |
 | `caniuse-lite`         | CC-BY-4.0               | Reviewed — build-time data                |
 | `lightningcss*`        | MPL-2.0                 | Reviewed — Tailwind build chain           |

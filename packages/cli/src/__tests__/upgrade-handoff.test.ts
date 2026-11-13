@@ -80,6 +80,7 @@ describe("upgrade target handoff", () => {
       writer: captured.writer,
       runningVersion: "1.2.2",
       resolveLatest: () => "1.2.5",
+      resolvePublished: () => ["1.2.2", "1.2.5"],
       spawn: (command, args) => {
         calls.push([command, ...args]);
         return spawnResult({ status: 0 });
@@ -121,6 +122,7 @@ describe("upgrade target handoff", () => {
         discovered = true;
         return "9.9.9";
       },
+      resolvePublished: () => ["1.2.2", "1.2.5"],
       spawn: (_command, args) => {
         calls.push([...args]);
         return spawnResult({ status: 4 });
