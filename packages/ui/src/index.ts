@@ -20,7 +20,7 @@ export {
   setThemePreference,
   useTheme,
 } from "./hooks/use-theme";
-export { useZodForm, type UseZodFormOptions } from "./hooks/use-zod-form";
+export { useZodForm, type UseZodFormOptions, type ZodFormSchema } from "./hooks/use-zod-form";
 export { ThemeProvider } from "./providers/theme-provider";
 
 // Form Utilities

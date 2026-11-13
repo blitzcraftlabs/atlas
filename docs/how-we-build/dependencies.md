@@ -48,16 +48,22 @@ third-party primitive (@base-ui/react, cmdk, sonner, …)
 
 ## Form ecosystem
 
-| Package               | Owner                                                                      | Notes                                                              |
-| --------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `react-hook-form`     | `@atlas/ui` (runtime); apps that import RHF types directly also declare it | Reference `UserForm` imports `Control`, `FieldValues`, etc.        |
-| `@hookform/resolvers` | `@atlas/ui` only                                                           | Used by `useZodForm`; apps use the hook, not the resolver          |
-| `zod`                 | Every workspace that defines or validates schemas                          | Apps, `@atlas/project`, and `@blitzcraftlabs/atlas` use Zod 3.24.1 |
+| Package               | Owner                                                                      | Notes                                                             |
+| --------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `react-hook-form`     | `@atlas/ui` (runtime); apps that import RHF types directly also declare it | Reference `UserForm` imports `Control`, `FieldValues`, etc.       |
+| `@hookform/resolvers` | `@atlas/ui` only                                                           | Used by `useZodForm`; apps use the hook, not the resolver         |
+| `zod`                 | Every workspace that defines or validates schemas                          | Apps, `@atlas/project`, and `@blitzcraftlabs/atlas` use Zod 4.6.7 |
 
-Atlas keeps `@hookform/resolvers` v4 because Atlas currently standardizes on Zod 3.24.1. Resolver
-v5.2.x expects the `zod/v4/core` compatibility subpath introduced in Zod 3.25+, so upgrading the
-resolver independently would break the current Zod baseline. A resolver/Zod major-line upgrade
-should be handled deliberately together.
+Atlas standardizes on Zod 4.6.7 with `@hookform/resolvers` v5. They move together: resolver v5 types
+forms by schema input and output (`useZodForm` returns
+`UseFormReturn<z.input<S>, unknown, z.output<S>>`), and resolver v4 does not support Zod 4.
+
+`zod` (in `apps/web`, `@atlas/ui`, `@atlas/project`, `@blitzcraftlabs/atlas`) and
+`@hookform/resolvers` (in `@atlas/ui`) are Atlas-owned manifest fields, so `atlas upgrade` moves
+them with the synced code that needs them. A consumer still on the value every earlier release
+shipped (Zod 3.24.1, resolvers ^4.1.3) is upgraded automatically; any other value is reported for
+manual review. Product code that uses Zod 3-only APIs needs migrating, notably `.default()` after a
+`.transform()` (use `.prefault()` to keep Zod 3 semantics) and `ZodTypeAny`/`ZodEffects` type names.
 
 ---
 

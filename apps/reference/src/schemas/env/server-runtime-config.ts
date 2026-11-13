@@ -262,7 +262,7 @@ export const ServerEnvSchema = {
     .transform((val) => parseInt(val, 10))
     .pipe(z.number().positive())
     .optional()
-    .default("604800"),
+    .prefault("604800"),
 
   /**
    * Enable deterministic reference auth/API adapters for local development.
@@ -274,5 +274,5 @@ export const ServerEnvSchema = {
     .string()
     .transform((val) => val === "true")
     .optional()
-    .default("false"),
+    .prefault("false"),
 };
