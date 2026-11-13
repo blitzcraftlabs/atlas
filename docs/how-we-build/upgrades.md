@@ -116,7 +116,7 @@ typical fork behavior — not requirements.
 | Can consumers edit synced template files? | **Yes** — source-owned platform                                             |
 | Effect on upgrades?                       | Checksum diverges from baseline → future replace becomes **merge-required** |
 | Ownership transition?                     | **No silent transition** — manifest classifies; checksums detect edits      |
-| Three-way merge?                          | Manual today; release snapshots now ship in the CLI package (see #111)      |
+| Three-way merge?                          | `atlas upgrade --merge` applies clean merges; conflicts get a sidecar file  |
 | Silent overwrites?                        | **Forbidden** for synced paths when checksum differs                        |
 
 ### During upgrade (by channel)
@@ -126,7 +126,7 @@ typical fork behavior — not requirements.
 | Versioned package                         | Bump workspace/package versions; read changelog                              |
 | Generated artifact                        | Update spec if needed → `pnpm api:gen` → `pnpm api:check`                    |
 | Unchanged synced file (checksum match)    | Replace from target Atlas snapshot                                           |
-| Consumer-modified synced file             | **Conflict** — manual merge                                                  |
+| Consumer-modified synced file             | **Conflict** — three-way merge with `--merge` when clean; otherwise manual   |
 | Unchanged repository-level template       | Replace from target Atlas snapshot when checksum evidence matches            |
 | Consumer-customized repository-level file | **Never overwrite** — manual review; remainder of a safe upgrade may proceed |
 | Independent / consumer-owned              | Never overwrite; optional review notes                                       |
@@ -135,11 +135,11 @@ typical fork behavior — not requirements.
 | Documentation only                        | Read `docs/migrations/` + changelog                                          |
 
 Optional consumer tooling (Storybook, visual tests, performance CI, security workflows, Dependabot,
-coverage floors, Git hooks, Cursor adapters, Docker Compose) is **not** applied by `atlas upgrade`,
-including a same-version upgrade. Root `Dockerfile` and `.dockerignore` are repository-level Atlas
-template surfaces, not opt-in enablement. Adopt those capabilities with
-`pnpm atlas enable <id> --dry-run` then `pnpm atlas enable <id>` (available since 1.2.0). See
-[consumer-tooling.md](consumer-tooling.md).
+the `upgrades` PR workflow, coverage floors, Git hooks, Cursor adapters, Docker Compose) is **not**
+applied by `atlas upgrade`, including a same-version upgrade. Root `Dockerfile` and `.dockerignore`
+are repository-level Atlas template surfaces, not opt-in enablement. Adopt those capabilities with
+`pnpm atlas enable <id> --dry-run` then `pnpm atlas enable <id>` (available since 1.2.0; the
+`upgrades` capability since 1.4.0). See [consumer-tooling.md](consumer-tooling.md).
 
 ---
 
@@ -169,8 +169,11 @@ upgrade plan (patch-safe | merge-required | migration-required | manual)
 
 ## Conflict policy
 
-1. **Record** checksums at bootstrap / post-upgrade (`atlas upgrade`). Capture must be **strict** —
-   missing manifest synced paths fail baseline recording rather than producing incomplete evidence.
+1. **Record** checksums at bootstrap / post-upgrade (`atlas upgrade`). After an upgrade, application
+   synced-path checksums record the **Atlas target-release content**, not the consumer's file, so a
+   customization Atlas did not touch in that release stays detectable as modified on the next one.
+   Capture must be **strict** — missing manifest synced paths fail baseline recording rather than
+   producing incomplete evidence.
 2. **Before any synced-path write**, compare consumer checksum to baseline checksum.
 3. **Equal** (proven unchanged) → consumer has not edited since baseline → safe replace allowed.
 4. **Already equal to the target release** → patch-safe skip; do not rewrite. Exact target content
@@ -314,10 +317,11 @@ The first npm-distributed Atlas CLI (`@blitzcraftlabs/atlas@1.0.1`, published fr
 | Promise               | Detail                                                                                                                              |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | **We support**        | Adjacent upgrades between published Atlas releases that have production snapshots. Unpublished snapshot directories are not support |
+| **We support**        | Multi-release upgrades: `atlas upgrade` walks every published release between baseline and target, one adjacent hop at a time       |
 | **We support**        | A one-release recovery bridge when a faulty catalog excluded a real published predecessor                                           |
 | **We support**        | Deterministic conflict detection for synced template infrastructure                                                                 |
 | **We support**        | Regeneration for generated artifacts                                                                                                |
-| **We do not support** | Unlimited historical upgrades, including rehearsal snapshots `0.1.0` / `0.2.0`                                                      |
+| **We do not support** | Upgrades from rehearsal snapshots `0.1.0` / `0.2.0`                                                                                 |
 | **We do not support** | Silent overwrite of consumer-modified synced files                                                                                  |
 | **We do not support** | Perpetual automatic upgrades with zero review                                                                                       |
 | Pre-1.0 proving line  | Breaking changes were allowed with changelog + migration docs; they are historical                                                  |

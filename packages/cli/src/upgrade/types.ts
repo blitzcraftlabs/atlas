@@ -23,7 +23,8 @@ export type UpgradeActionKind =
   | "package-upgrade"
   | "skip"
   | "manual-review"
-  | "migration";
+  | "migration"
+  | "merge";
 
 export type UpgradeBaselineStatus = "unchanged" | "modified" | "unknown";
 
@@ -65,6 +66,9 @@ export interface UpgradePlanItem {
   baselineStatus?: UpgradeBaselineStatus;
   pathScope?: UpgradePathScope;
   manifestChange?: ManifestFieldChange;
+  /** Outcome of a three-way merge for consumer-modified `merge-required` synced paths. */
+  autoMerge?: "clean" | "conflict" | "unavailable";
+  mergeConflicts?: number;
 }
 
 export interface UpgradePlanSummary {
@@ -151,4 +155,15 @@ export interface UpgradeRunResult {
   latestStable?: string;
   targetResolution?: "latest" | "explicit";
   dependencyInstall?: "passed" | "failed" | "skipped" | "not-run";
+  /** Ordered published releases walked to reach the target when more than one hop is needed. */
+  hops?: string[];
+  /** Per-hop outcome for multi-release upgrades. */
+  hopResults?: UpgradeHopResult[];
+}
+
+export interface UpgradeHopResult {
+  targetVersion: string;
+  exitCode: number;
+  /** Child CLI JSON result when run with --json. */
+  result?: unknown;
 }

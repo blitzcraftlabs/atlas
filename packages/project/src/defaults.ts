@@ -106,6 +106,21 @@ export function resolveAtlasProjectContract(raw: RawAtlasProjectContract): Resol
     boundaries: { ...merged.boundaries },
   };
 
+  if (raw.generators && Object.keys(raw.generators).length > 0) {
+    resolved.generators = Object.fromEntries(
+      Object.entries(raw.generators)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([id, generator]) => [
+          id,
+          {
+            ...generator,
+            templates: normalizeRepoRelativePath(generator.templates),
+            target: normalizeRepoRelativePath(generator.target),
+          },
+        ])
+    );
+  }
+
   if (raw.platform?.baseline) {
     resolved.platform = {
       baseline: {

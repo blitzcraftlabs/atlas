@@ -101,6 +101,42 @@ const platformBaselineSchema = z
   })
   .strict();
 
+/** Built-in generator ids that custom generators may not reuse. */
+export const RESERVED_GENERATOR_IDS = ["feature", "page", "list"] as const;
+
+const generatorIdSchema = z
+  .string()
+  .regex(/^[a-z][a-z0-9-]*$/, "Generator id must be kebab-case")
+  .refine(
+    (value) => !(RESERVED_GENERATOR_IDS as readonly string[]).includes(value),
+    "Generator id is reserved by a built-in Atlas generator"
+  );
+
+/**
+ * A consumer-defined generator. Every file under `templates` is rendered into `target`.
+ * Paths and contents may use {{name}}, {{kebab}}, {{camel}}, {{pascal}} and {{title}}.
+ * A trailing `.tmpl` suffix is stripped from file names.
+ */
+const customGeneratorSchema = z
+  .object({
+    description: z.string().min(1),
+    templates: repoRelativePath,
+    target: repoRelativePath,
+    argument: z
+      .object({
+        name: z.string().regex(/^[a-z][a-zA-Z0-9-]*$/),
+        description: z.string().min(1),
+      })
+      .strict()
+      .optional(),
+    followUp: z.array(z.string().min(1)).optional(),
+  })
+  .strict();
+
+export type CustomGeneratorDefinition = z.infer<typeof customGeneratorSchema>;
+
+const generatorsSchema = z.record(generatorIdSchema, customGeneratorSchema);
+
 const platformSchema = z
   .object({
     baseline: platformBaselineSchema,
@@ -122,6 +158,7 @@ export const atlasProjectContractSchema = z
       .optional(),
     capabilities: capabilitiesSchema.partial().optional(),
     boundaries: boundariesSchema.partial().optional(),
+    generators: generatorsSchema.optional(),
     platform: platformSchema.optional(),
   })
   .strict();
@@ -150,6 +187,7 @@ export const resolvedAtlasProjectSchema = z
     generated: resolvedGeneratedSchema,
     capabilities: resolvedCapabilitiesSchema,
     boundaries: resolvedBoundariesSchema,
+    generators: generatorsSchema.optional(),
     platform: resolvedPlatformSchema.optional(),
   })
   .strict();

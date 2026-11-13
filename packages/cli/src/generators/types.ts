@@ -1,6 +1,9 @@
 import type { PlannedAction } from "../types/result";
 
-export type GeneratorType = "feature" | "page";
+export type BuiltinGeneratorType = "feature" | "page";
+
+/** Built-in generator ids plus consumer-defined ids from `atlas.config.json#generators`. */
+export type GeneratorType = BuiltinGeneratorType | (string & {});
 
 export interface GeneratedFile {
   relativePath: string;

@@ -3,6 +3,7 @@ import { CliError, CliErrorCode } from "../errors/cli-error";
 import { ExitCode } from "../exit-codes";
 import { listGeneratorDefinitions } from "../generators/registry";
 import {
+  planCustomGenerationForRepo,
   planFeatureGenerationForRepo,
   planPageGenerationForRepo,
   runGenerator,
@@ -12,7 +13,7 @@ import { writeCommandSuccess } from "../output/write";
 import type { GenerationResult } from "../generators/types";
 import type { OutputWriter } from "../output/write";
 
-export type GenerateKind = "feature" | "page" | "list";
+export type GenerateKind = "feature" | "page" | "list" | (string & {});
 
 export interface ParsedGenerateArgs {
   kind: GenerateKind;
@@ -94,10 +95,10 @@ export function parseGenerateArgs(argv: string[]): ParsedGenerateArgs {
   }
 
   const kind = positional[0];
-  if (kind !== "feature" && kind !== "page" && kind !== "list") {
+  if (kind === undefined || !/^[a-z][a-z0-9-]*$/.test(kind)) {
     throw new CliError(
       CliErrorCode.USAGE_ERROR,
-      `Unknown generator type: ${kind}. Expected feature, page, or list.`
+      `Unknown generator type: ${String(kind)}. Expected feature, page, list, or a generator from atlas.config.json.`
     );
   }
 
@@ -114,12 +115,7 @@ export function parseGenerateArgs(argv: string[]): ParsedGenerateArgs {
   }
 
   if (positional.length < 2) {
-    throw new CliError(
-      CliErrorCode.USAGE_ERROR,
-      kind === "feature"
-        ? "Missing feature name. Usage: atlas generate feature <name>"
-        : "Missing route. Usage: atlas generate page <route>"
-    );
+    throw new CliError(CliErrorCode.USAGE_ERROR, missingTargetMessage(kind));
   }
 
   if (positional.length > 2) {
@@ -144,15 +140,16 @@ function parseFlagValue(args: string[], index: number, flag: string): string {
 
 export function runGenerateCommand(options: GenerateCommandOptions): number {
   if (options.parsed.kind === "list") {
+    const generators = listGeneratorDefinitions(tryLoadProject(options.parsed.cwd));
     writeCommandSuccess(
       options.writer,
       "generate list",
-      { generators: listGeneratorDefinitions() },
+      { generators },
       options.parsed.json,
       () => [
         "Atlas generators",
         "",
-        ...listGeneratorDefinitions().flatMap((generator) => [
+        ...generators.flatMap((generator) => [
           `${generator.id}: ${generator.description}`,
           `  ${generator.usage}`,
         ]),
@@ -162,7 +159,7 @@ export function runGenerateCommand(options: GenerateCommandOptions): number {
   }
 
   if (
-    options.parsed.kind === "page" &&
+    options.parsed.kind !== "feature" &&
     (options.parsed.query || options.parsed.mutation || options.parsed.form || options.parsed.tests)
   ) {
     throw new CliError(
@@ -177,18 +174,7 @@ export function runGenerateCommand(options: GenerateCommandOptions): number {
   });
   const project = loadProjectContext(context);
 
-  const plan =
-    options.parsed.kind === "feature"
-      ? planFeatureGenerationForRepo(context.repoRoot, project, {
-          name: options.parsed.target,
-          query: options.parsed.query,
-          mutation: options.parsed.mutation,
-          form: options.parsed.form,
-          tests: options.parsed.tests,
-        })
-      : planPageGenerationForRepo(context.repoRoot, project, {
-          route: options.parsed.target,
-        });
+  const plan = planForKind(context.repoRoot, project, options.parsed);
 
   const result = runGenerator({
     context,
@@ -284,4 +270,39 @@ export function writeGenerateHelp(writer: OutputWriter, json: boolean): void {
   for (const line of lines) {
     writer.writeStdout(line);
   }
+}
+
+function tryLoadProject(cwd: string | undefined) {
+  try {
+    const context = createAtlasContext({ cwd, requireProject: true });
+    return loadProjectContext(context);
+  } catch {
+    return undefined;
+  }
+}
+
+function missingTargetMessage(kind: string): string {
+  if (kind === "feature") return "Missing feature name. Usage: atlas generate feature <name>";
+  if (kind === "page") return "Missing route. Usage: atlas generate page <route>";
+  return `Missing name. Usage: atlas generate ${kind} <name>`;
+}
+
+function planForKind(
+  repoRoot: string,
+  project: ReturnType<typeof loadProjectContext>,
+  parsed: ParsedGenerateArgs
+) {
+  if (parsed.kind === "feature") {
+    return planFeatureGenerationForRepo(repoRoot, project, {
+      name: parsed.target,
+      query: parsed.query,
+      mutation: parsed.mutation,
+      form: parsed.form,
+      tests: parsed.tests,
+    });
+  }
+  if (parsed.kind === "page") {
+    return planPageGenerationForRepo(repoRoot, project, { route: parsed.target });
+  }
+  return planCustomGenerationForRepo(repoRoot, project, parsed.kind, parsed.target);
 }

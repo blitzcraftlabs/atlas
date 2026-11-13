@@ -1,3 +1,5 @@
+import type { ResolvedAtlasProject } from "@atlas/project";
+
 import type { GeneratorType } from "./types";
 
 export interface GeneratorArgumentDefinition {
@@ -14,6 +16,8 @@ export interface GeneratorFlagDefinition {
 
 export interface GeneratorDefinition {
   id: GeneratorType;
+  /** `builtin` generators ship with Atlas; `custom` ones come from atlas.config.json. */
+  source?: "builtin" | "custom";
   description: string;
   usage: string;
   targetOwnership: string;
@@ -89,10 +93,45 @@ export const GENERATOR_DEFINITIONS: GeneratorDefinition[] = [
   },
 ];
 
-export function listGeneratorDefinitions(): GeneratorDefinition[] {
-  return GENERATOR_DEFINITIONS.map((definition) => ({
+export function listGeneratorDefinitions(project?: ResolvedAtlasProject): GeneratorDefinition[] {
+  const builtins = GENERATOR_DEFINITIONS.map((definition) => ({
     ...definition,
+    source: "builtin" as const,
     arguments: [...definition.arguments],
     flags: [...definition.flags],
   }));
+  const custom = Object.entries(project?.generators ?? {}).map(
+    ([id, generator]): GeneratorDefinition => {
+      const argumentName = generator.argument?.name ?? "name";
+      return {
+        id,
+        source: "custom",
+        description: generator.description,
+        usage: `atlas generate ${id} <${argumentName}> [options]`,
+        targetOwnership: `Consumer-owned output rendered into ${generator.target} from ${generator.templates}.`,
+        conflictBehavior:
+          "Fails when any rendered file already exists. Does not overwrite existing files.",
+        arguments: [
+          {
+            name: argumentName,
+            required: true,
+            description: generator.argument?.description ?? "Name in kebab-case.",
+          },
+        ],
+        flags: [
+          {
+            flag: "--dry-run",
+            description: "Preview planned file actions without writing.",
+            appliesTo: "all",
+          },
+          {
+            flag: "--json",
+            description: "Emit machine-readable JSON on stdout.",
+            appliesTo: "all",
+          },
+        ],
+      };
+    }
+  );
+  return [...builtins, ...custom];
 }
