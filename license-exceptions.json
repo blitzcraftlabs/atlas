@@ -56,6 +56,12 @@
       "reviewedOn": "2026-08-27",
       "disposition": "accepted"
     },
+    "sentry@0.45.0": {
+      "status": "reviewed",
+      "reason": "Sentry CLI pulled dev-only via @lhci/cli 0.16 -> lighthouse 13 -> @sentry/node 11 -> @sentry/bundler-plugins; FSL-1.1-Apache-2.0. Never executed: Lighthouse only lazy-imports @sentry/node when enableErrorReporting is set, which LHCI does not enable. Not redistributed as Atlas source.",
+      "reviewedOn": "2026-11-08",
+      "disposition": "accepted"
+    },
     "@sentry/cli-darwin@2.58.6": {
       "status": "reviewed",
       "reason": "Platform binary for @sentry/cli; FSL-1.1-MIT. Not redistributed as Atlas source.",

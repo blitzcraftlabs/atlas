@@ -157,6 +157,30 @@ export const CONSUMER_CAPABILITIES: CapabilityDefinition[] = [
     validationCommand: "test -f .github/dependabot.yml",
   },
   {
+    id: "upgrades",
+    title: "Atlas upgrade PRs",
+    description:
+      "Weekly GitHub workflow that runs `pnpm atlas upgrade`, opens one pull request when a newer Atlas release applies cleanly, and opens one issue when the upgrade needs a human. Consumer-owned.",
+    tier: "opt-in",
+    heavier: false,
+    requires: [],
+    detectPath: ".github/workflows/atlas-upgrade.yml",
+    rootScripts: {
+      "atlas:upgrade-pr": "node scripts/atlas-upgrade-pr.mjs",
+    },
+    files: [
+      {
+        source: "packages/cli/bootstrap/capabilities/templates/atlas-upgrade.yml",
+        destination: ".github/workflows/atlas-upgrade.yml",
+      },
+      {
+        source: "packages/cli/bootstrap/capabilities/templates/atlas-upgrade-pr.mjs",
+        destination: "scripts/atlas-upgrade-pr.mjs",
+      },
+    ],
+    validationCommand: "pnpm atlas upgrade --dry-run --json",
+  },
+  {
     id: "coverage",
     title: "Critical-subsystem coverage",
     description:

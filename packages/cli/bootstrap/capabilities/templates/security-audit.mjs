@@ -15,38 +15,15 @@ const RECOGNIZED_SEVERITIES = new Set(["info", "low", "moderate", "high", "criti
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * Narrow exceptions for starter Lighthouse CI only. An exempt finding that is
- * also reachable through a path that does not include `pathIncludes` still fails.
+ * Documented advisory + package + version + path exceptions. Each entry must
+ * name an advisory, package, exact versions, a `pathIncludes` scope and an
+ * `expiresOn` date; a finding is ignored only when *every* path matches the scope.
+ *
+ * The starter ships with no exceptions. The former @lhci/cli tmp and extract-zip
+ * exceptions were removed once @lhci/cli 0.16 (Lighthouse 13, @puppeteer/browsers 3)
+ * dropped both packages from the dependency tree.
  */
-export const CONSUMER_SECURITY_EXCEPTIONS = [
-  {
-    advisory: "GHSA-ph9p-34f9-6g65",
-    packageName: "tmp",
-    versions: ["0.0.33", "0.1.0"],
-    pathIncludes: "@lhci/cli",
-    rationale:
-      "Vulnerable tmp 0.0.33/0.1.0 is pulled by starter @lhci/cli. Consumers do not pass attacker-controlled tmp options. Revisit when LHCI ships a patched tree.",
-    expiresOn: "2026-11-27",
-  },
-  {
-    advisory: "GHSA-jmr9-qjv8-65gv",
-    packageName: "extract-zip",
-    versions: ["2.0.1"],
-    pathIncludes: "@lhci/cli",
-    rationale:
-      "extract-zip@2.0.1 is transitive through @lhci/cli → lighthouse → puppeteer-core. Atlas consumers do not extract attacker-supplied zip archives. Registry still reports no patched 2.x line.",
-    expiresOn: "2026-11-27",
-  },
-  {
-    advisory: "GHSA-7pqw-9j4j-h8q3",
-    packageName: "extract-zip",
-    versions: ["2.0.1"],
-    pathIncludes: "@lhci/cli",
-    rationale:
-      "Same extract-zip@2.0.1 LHCI path as GHSA-jmr9-qjv8-65gv (symlink/zip-slip). Scoped to @lhci/cli only; any other extract-zip path remains blocking.",
-    expiresOn: "2026-11-27",
-  },
-];
+export const CONSUMER_SECURITY_EXCEPTIONS = [];
 
 function isValidIsoDate(value) {
   if (typeof value !== "string" || !ISO_DATE_PATTERN.test(value)) {

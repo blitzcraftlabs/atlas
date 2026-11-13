@@ -203,7 +203,7 @@ After the Version PR merges to `main`, the Release workflow publishes fail-close
 6. Reload GitHub tags, Releases, assets, and current `main`, then re-evaluate the original target
    SHA
 7. Create `vX.Y.Z` at that SHA only when the fresh decision is still `publish`
-8. Create the GitHub Release with changelog-derived notes, SBOM, and license notice
+8. Create the GitHub Release **as a draft** with changelog-derived notes, SBOM, and license notice
 9. No-op when the current version is already published with required assets at this SHA, or at a
    proven ancestor of current `main` after post-release commits
 10. Repair a missing Release or missing required SBOM at the same SHA without retagging
@@ -212,16 +212,30 @@ After the Version PR merges to `main`, the Release workflow publishes fail-close
     the exact canonical `vX.Y.Z` tag, packs one `@blitzcraftlabs/atlas` tarball from that checkout,
     validates it, and either requires the first-publish bootstrap or publishes that exact file with
     OIDC. Untagged later `main` commits cannot publish a missing version.
+12. The `finalize-release` job runs only after `npm-publish` succeeds (including registry
+    verification). It confirms the version is on npm and makes the draft Release public
+    (`pnpm release:finalize`), marking it latest only when it is the highest stable npm version. It
+    then runs `pnpm release:consistency`.
 
 The npm job is not a second versioning system. It distributes the same Atlas version that the GitHub
 Release already recorded.
 
-The GitHub Release job runs before npm publication on purpose. npm publication packs only when HEAD
-is the exact canonical `vX.Y.Z` tag, and that tag is created with the GitHub Release. A successful
-GitHub Release is not npm publication. If `npm-publish` fails after the tag and Release exist, leave
-both in place and ship the fix as a later version. The unpublished version stays out of the consumer
-upgrade catalog until `pnpm view @blitzcraftlabs/atlas versions` lists it. `v1.3.0` is that case:
-the tag and GitHub Release exist, and `@blitzcraftlabs/atlas@1.3.0` was not published.
+The GitHub Release job runs before npm publication on purpose: npm packs only when HEAD is the exact
+canonical `vX.Y.Z` tag, and that tag is created by the GitHub Release job. The Release itself stays
+a **draft** until npm publication is verified, so a public GitHub Release always has a matching npm
+version. If `npm-publish` fails, the tag and draft remain; re-run the failed jobs for that commit,
+or delete the draft and ship the fix as a later version. The unpublished version stays out of the
+consumer upgrade catalog until `pnpm view @blitzcraftlabs/atlas versions` lists it.
+
+`v1.3.0` (and the never-tagged `1.2.3` snapshot) predate draft-first releases: the public Release
+exists without an npm version. See
+[postmortem 0002](../operations/postmortems/0002-github-only-releases.md).
+`scripts/lib/release-consistency.mjs` lists these known GitHub-only versions. Do not add new
+entries.
+
+The **Release Consistency** workflow (`release-consistency.yml`) runs daily and fails when a public
+GitHub Release has no npm version or an npm version has no canonical tag. Drafts waiting for npm and
+orphan tags are reported as warnings.
 
 Internal `@atlas/*` workspace packages are not published to npm. `@blitzcraftlabs/atlas` is the only
 public npm package. After the GitHub Release job completes, a separate `npm-publish` job:

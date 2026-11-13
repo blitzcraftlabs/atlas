@@ -212,10 +212,10 @@ jobs:
 
   npm-publish:
     name: Publish npm package
-    # The GitHub Release job creates the canonical tag first. This job packs only
-    # from that exact tag, so it cannot run earlier. A green GitHub Release is not
-    # npm publication. If this job fails, the tag and Release stay, and the version
-    # stays out of the consumer upgrade catalog until it exists on npm.
+    # The GitHub Release job creates the canonical tag and a *draft* Release first.
+    # This job packs only from that exact tag, so it cannot run earlier. If it fails,
+    # the Release stays a draft (never public) and the version stays out of the
+    # consumer upgrade catalog until it exists on npm. finalize-release publishes it.
     if:
       github.event_name == 'push' && needs.version-pr.outputs.has-changesets != 'true' &&
       needs.github-release.outputs.action == 'publish'
@@ -278,6 +278,45 @@ jobs:
         if: steps.npm.outputs.action == 'bootstrap-required'
         run: |
           echo "::notice::@blitzcraftlabs/atlas does not exist on npm yet. Download the validated tarball artifact and publish that exact file with a human-authenticated npm publish. Do not rebuild."
+
+  finalize-release:
+    name: Publish draft GitHub Release
+    # Runs only after npm publication and registry verification succeed, so a public
+    # GitHub Release always has a matching npm version (#112).
+    if:
+      github.event_name == 'push' && needs.version-pr.outputs.has-changesets != 'true' &&
+      needs.github-release.outputs.action == 'publish' && needs.npm-publish.result == 'success'
+    needs:
+      - github-release
+      - npm-publish
+      - version-pr
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Make the draft GitHub Release public
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          ATLAS_RELEASE_VERSION: ${{ needs.github-release.outputs.version }}
+        run: node scripts/finalize-atlas-release.mjs --version "${ATLAS_RELEASE_VERSION}"
+
+      - name: Check GitHub Release and npm consistency
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: node scripts/check-release-consistency.mjs
 
   verify-registry:
     name: Verify published npm package
