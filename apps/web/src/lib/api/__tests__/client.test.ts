@@ -1,7 +1,7 @@
 /**
  * Atlas-owned API client, correlation, retry, timeout, and auth injection.
  *
- * @jest-environment jsdom
+ * @jest-environment jest-fixed-jsdom
  */
 
 import { RETRY_CONFIG } from "../config";
