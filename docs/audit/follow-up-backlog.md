@@ -9,33 +9,6 @@ include in the initial PR.
 
 ## P1 - Do Soon (High Impact)
 
-### 1. MSW v2 Migration
-
-**Type:** Dependency upgrade + refactor **Effort:** 2-3 hours **Risk:** Medium (test infrastructure)
-
-**Current State:**
-
-- MSW installed at v1.3.3
-- Uses `rest` API in `src/test/setup/msw.ts`
-- `docs/how-we-build/testing.md` documents the v1 API (aligned as of 2026-08-16)
-
-**Actions:**
-
-1. Update `package.json`: `"msw": "^2.x"`
-2. Update `src/test/setup/msw.ts`:
-   - Replace `rest` with `http`
-   - Replace `res(ctx.json(...))` with `HttpResponse.json(...)`
-3. Search for any test files using MSW directly and update
-4. Run full test suite
-5. Update docs if inconsistencies found
-
-**Verification:**
-
-- [ ] `pnpm test` passes
-- [ ] No MSW v1 API usage remains
-
----
-
 ### 2. OpenAPI Contract Validation
 
 **Type:** CI/CD enhancement **Effort:** 1-2 hours **Risk:** Low
@@ -122,3 +95,4 @@ claims register and `pnpm docs:check`
 | Task                        | Date       | PR            |
 | --------------------------- | ---------- | ------------- |
 | Sentry demo: use API client | 2025-12-27 | This audit PR |
+| MSW v2 migration            | 2026-11-12 | MSW v2 PR     |
