@@ -756,6 +756,7 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
     atlasVersion: targetVersion,
     contractSchemaVersion: targetRelease.manifest.contractSchemaVersion,
     manifest: targetManifestSubset,
+    targetSyncedContents: targetRelease.snapshot.syncedPaths,
     repositorySyncedPathChecksums: selectRepositorySyncedPathChecksumsForUpgrade({
       repoRoot: options.repoRoot,
       targetRepositorySyncedPaths,
