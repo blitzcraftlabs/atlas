@@ -139,7 +139,9 @@ The consumer starting surface created by `atlas init` is `apps/web`, not `apps/r
 | Examples     | [Examples](docs/public/examples.md) · [FAQ](docs/public/faq.md)                           |
 | How We Build | [Conventions](docs/how-we-build/README.md) · [ADRs](docs/adr/README.md)                   |
 | Releases     | [Releases and governance](docs/how-we-build/releases-and-governance.md)                   |
+| Roadmap      | [Roadmap](docs/public/roadmap.md) · [Adopters](ADOPTERS.md)                               |
 | Contribute   | [CONTRIBUTING.md](CONTRIBUTING.md)                                                        |
+| Community    | [Discussions](https://github.com/blitzcraftlabs/atlas/discussions)                        |
 | Security     | [SECURITY.md](SECURITY.md)                                                                |
 
 ## Contributing
