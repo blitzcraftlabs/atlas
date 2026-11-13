@@ -32,6 +32,7 @@ export interface UpgradeCommandOptions {
   targetVersion?: string;
   dryRun?: boolean;
   allowDirty?: boolean;
+  merge?: boolean;
   json?: boolean;
   releasesDir?: string;
   skipValidation?: boolean;
@@ -148,6 +149,8 @@ export function writeUpgradeHelp(writer: OutputWriter, json: boolean): void {
     "  --dry-run            Plan without filesystem mutations",
     "  --json               Emit machine-readable JSON on stdout",
     "  --allow-dirty        Allow mutations on a dirty Git worktree (use with caution)",
+    "  --merge              Apply clean three-way merges for files you modified; write",
+    "                       conflict-marked .atlas/merge/<path>.merge sidecars otherwise",
     "  --skip-validation    Expert/test escape hatch: skip post-upgrade atlas doctor only (migrations, package updates, and baseline capture still run)",
     "  --releases-dir <dir> Explicit fixture/maintainer override for release snapshots",
     "  --cwd <path>         Resolve the Atlas repository from a starting directory",
@@ -308,6 +311,7 @@ export async function runUpgradeCommand(options: UpgradeCommandOptions): Promise
         dryRun: options.dryRun,
         json: options.json,
         allowDirty: options.allowDirty,
+        merge: options.merge,
         skipValidation: options.skipValidation,
         releasesDir,
       },
@@ -326,6 +330,7 @@ export async function runUpgradeCommand(options: UpgradeCommandOptions): Promise
     targetVersion,
     dryRun: options.dryRun,
     allowDirty: options.allowDirty,
+    merge: options.merge,
     releasesDir,
     skipValidation: options.skipValidation,
   });

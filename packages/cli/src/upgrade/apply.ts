@@ -10,6 +10,8 @@ export interface ApplySafeUpgradeOptions {
   repoRoot?: string;
   plan: UpgradePlan;
   targetSnapshot: Record<string, string>;
+  /** Content to write instead of the target snapshot (three-way merge results). */
+  contentOverrides?: Record<string, string>;
   dryRun?: boolean;
 }
 
@@ -19,7 +21,13 @@ export interface ApplySafeUpgradeResult {
 }
 
 function shouldApplyItem(item: UpgradePlanItem): boolean {
-  if (item.conflict || item.category === "merge-required") {
+  if (item.conflict) {
+    return false;
+  }
+  if (item.action === "merge") {
+    return true;
+  }
+  if (item.category === "merge-required") {
     return false;
   }
 
@@ -58,7 +66,10 @@ export function applySafeUpgradeReplacements(
       continue;
     }
 
-    const targetContent = options.targetSnapshot[item.relativePath];
+    const targetContent =
+      item.action === "merge"
+        ? options.contentOverrides?.[item.relativePath]
+        : options.targetSnapshot[item.relativePath];
     if (targetContent === undefined) {
       skipped.push(item);
       continue;

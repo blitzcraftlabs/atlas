@@ -35,6 +35,7 @@ export interface UpgradeHandoffRequest {
   dryRun?: boolean;
   json?: boolean;
   allowDirty?: boolean;
+  merge?: boolean;
   skipValidation?: boolean;
   releasesDir?: string;
 }
@@ -59,6 +60,9 @@ export function buildUpgradeHandoffArgs(request: UpgradeHandoffRequest): string[
   }
   if (request.allowDirty) {
     args.push("--allow-dirty");
+  }
+  if (request.merge) {
+    args.push("--merge");
   }
   if (request.skipValidation) {
     args.push("--skip-validation");

@@ -116,7 +116,7 @@ typical fork behavior — not requirements.
 | Can consumers edit synced template files? | **Yes** — source-owned platform                                             |
 | Effect on upgrades?                       | Checksum diverges from baseline → future replace becomes **merge-required** |
 | Ownership transition?                     | **No silent transition** — manifest classifies; checksums detect edits      |
-| Three-way merge?                          | Manual until `atlas upgrade` provides release snapshots                     |
+| Three-way merge?                          | `atlas upgrade --merge` applies clean merges; conflicts get a sidecar file  |
 | Silent overwrites?                        | **Forbidden** for synced paths when checksum differs                        |
 
 ### During upgrade (by channel)
@@ -126,7 +126,7 @@ typical fork behavior — not requirements.
 | Versioned package                         | Bump workspace/package versions; read changelog                              |
 | Generated artifact                        | Update spec if needed → `pnpm api:gen` → `pnpm api:check`                    |
 | Unchanged synced file (checksum match)    | Replace from target Atlas snapshot                                           |
-| Consumer-modified synced file             | **Conflict** — manual merge                                                  |
+| Consumer-modified synced file             | **Conflict** — three-way merge with `--merge` when clean; otherwise manual   |
 | Unchanged repository-level template       | Replace from target Atlas snapshot when checksum evidence matches            |
 | Consumer-customized repository-level file | **Never overwrite** — manual review; remainder of a safe upgrade may proceed |
 | Independent / consumer-owned              | Never overwrite; optional review notes                                       |
@@ -170,8 +170,11 @@ upgrade plan (patch-safe | merge-required | migration-required | manual)
 
 ## Conflict policy
 
-1. **Record** checksums at bootstrap / post-upgrade (`atlas upgrade`). Capture must be **strict** —
-   missing manifest synced paths fail baseline recording rather than producing incomplete evidence.
+1. **Record** checksums at bootstrap / post-upgrade (`atlas upgrade`). After an upgrade, application
+   synced-path checksums record the **Atlas target-release content**, not the consumer's file, so a
+   customization Atlas did not touch in that release stays detectable as modified on the next one.
+   Capture must be **strict** — missing manifest synced paths fail baseline recording rather than
+   producing incomplete evidence.
 2. **Before any synced-path write**, compare consumer checksum to baseline checksum.
 3. **Equal** (proven unchanged) → consumer has not edited since baseline → safe replace allowed.
 4. **Already equal to the target release** → patch-safe skip; do not rewrite. Exact target content
