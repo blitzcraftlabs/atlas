@@ -26,6 +26,7 @@ export const LICENSE_POLICY = {
     "CC-BY-4.0",
     "CDDL-1.0",
     "CDDL-1.1",
+    "FSL-1.1-Apache-2.0",
     "FSL-1.1-MIT",
     "LGPL-2.0",
     "LGPL-2.1",

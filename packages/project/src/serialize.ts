@@ -19,6 +19,7 @@ export function serializeResolvedAtlasProject(project: ResolvedAtlasProject): st
     },
     capabilities: sortRecord({ ...project.capabilities }),
     boundaries: sortRecord({ ...project.boundaries }),
+    ...(project.generators ? { generators: sortRecord({ ...project.generators }) } : {}),
     ...(project.platform
       ? {
           platform: {

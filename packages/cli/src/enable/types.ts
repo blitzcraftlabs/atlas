@@ -5,6 +5,7 @@ export type CapabilityId =
   | "perf-ci"
   | "security"
   | "updates"
+  | "upgrades"
   | "coverage"
   | "hooks"
   | "cursor"

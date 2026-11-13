@@ -1,7 +1,7 @@
 module.exports = {
   displayName: "web",
   preset: "ts-jest",
-  testEnvironment: "jsdom",
+  testEnvironment: "jest-fixed-jsdom",
   rootDir: ".",
   roots: ["<rootDir>/src"],
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
@@ -29,8 +29,22 @@ module.exports = {
         },
       },
     ],
+    // Compile allow-listed ESM-only dependencies (see transformIgnorePatterns) to CommonJS.
+    "/node_modules/.+\\.m?js$": [
+      "babel-jest",
+      {
+        babelrc: false,
+        configFile: false,
+        plugins: ["@babel/plugin-transform-modules-commonjs"],
+      },
+    ],
   },
-  transformIgnorePatterns: ["node_modules/(?!(web-vitals|@faker-js|@t3-oss)/)"],
+  // Skip node_modules except these ESM packages. Only the innermost node_modules segment is
+  // checked so nested installs (for example msw/node_modules/@open-draft) are matched too.
+  // rettime, until-async and @open-draft are ESM-only runtime dependencies of MSW v2.
+  transformIgnorePatterns: [
+    "/node_modules/(?!.*/node_modules/)(?!(web-vitals|@faker-js|@t3-oss|rettime|until-async|@open-draft)/)",
+  ],
   collectCoverageFrom: [
     "src/**/*.{ts,tsx}",
     "!src/**/*.d.ts",

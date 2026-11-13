@@ -14,9 +14,10 @@ import type { Permission } from "@/lib/authz/permissions";
  * Supported OAuth providers.
  *
  * `google` — production OAuth reference integration.
+ * `oidc` — generic OpenID Connect issuer configured via AUTH_OIDC_* environment variables.
  * `reference` — deterministic development/reference harness provider.
  */
-export type OAuthProvider = "google" | "reference";
+export type OAuthProvider = "google" | "oidc" | "reference";
 
 /**
  * Normalized user information from OAuth providers.

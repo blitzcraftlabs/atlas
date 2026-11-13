@@ -31,5 +31,6 @@ export function runGenerator(options: RunGeneratorOptions): GenerationResult {
   };
 }
 
+export { planCustomGenerationForRepo } from "./custom/generate";
 export { planFeatureGenerationForRepo } from "./feature/generate";
 export { planPageGenerationForRepo } from "./page/generate";

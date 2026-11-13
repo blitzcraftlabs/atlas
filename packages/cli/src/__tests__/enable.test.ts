@@ -10,7 +10,6 @@ import {
   CUSTOM_CHROME_FLAGS_REASON,
   LEGACY_CHROME_FLAGS_REASON,
 } from "../enable/lighthouse-chrome-flags";
-import { ENABLE_CLI_RELEASE_PLACEHOLDER } from "../init/cli-release";
 import { selectConsumerPnpmOverrides } from "../init/consumer-overrides";
 import { isKnownShippedConsumerDocumentation } from "../init/shipped-docs";
 import { verifyGeneratedGitHook } from "./helpers/verify-generated-git-hook";
@@ -159,7 +158,7 @@ describe("atlas enable", () => {
         expect(updated).not.toContain(
           `pnpm dlx @blitzcraftlabs/atlas@${CONSUMER_BASELINE_WITHOUT_ENABLE} enable`
         );
-        expect(updated).not.toContain(`@${ENABLE_CLI_RELEASE_PLACEHOLDER}`);
+        expect(updated).not.toContain("@<next-cli-release>");
 
         writeFileSync(path.join(destination, "AGENTS.md"), "# Custom agent notes\n");
         const preserved = enableConsumerCapability({
@@ -363,7 +362,7 @@ describe("atlas enable", () => {
         expect(agents?.content).toContain("pnpm atlas doctor");
         expect(agents?.content).toContain("pnpm atlas context --json");
         expect(agents?.content).toContain("pnpm atlas enable list --json");
-        expect(agents?.content).not.toContain(ENABLE_CLI_RELEASE_PLACEHOLDER);
+        expect(agents?.content).not.toContain("<next-cli-release>");
         expect(agents?.content).not.toContain(
           `pnpm dlx @blitzcraftlabs/atlas@${CONSUMER_BASELINE_WITHOUT_ENABLE} enable`
         );
@@ -393,7 +392,7 @@ describe("atlas enable", () => {
         expect(agents?.content).toContain("pnpm atlas doctor");
         expect(agents?.content).toContain("pnpm atlas context --json");
         expect(agents?.content).toContain("pnpm atlas enable list --json");
-        expect(agents?.content).not.toContain(ENABLE_CLI_RELEASE_PLACEHOLDER);
+        expect(agents?.content).not.toContain("<next-cli-release>");
 
         const applied = enableConsumerCapability({
           cwd: destination,
@@ -404,7 +403,7 @@ describe("atlas enable", () => {
         const updated = readFileSync(path.join(destination, "AGENTS.md"), "utf8");
         expect(updated).toContain("pnpm atlas doctor");
         expect(updated).toContain("pnpm atlas enable list --json");
-        expect(updated).not.toContain(ENABLE_CLI_RELEASE_PLACEHOLDER);
+        expect(updated).not.toContain("<next-cli-release>");
       } finally {
         rmSync(cwd, { recursive: true, force: true });
       }
@@ -508,6 +507,7 @@ describe("atlas enable", () => {
       const remaining: { id: string; path: string }[] = [
         { id: "security", path: "scripts/security-audit.mjs" },
         { id: "updates", path: ".github/dependabot.yml" },
+        { id: "upgrades", path: ".github/workflows/atlas-upgrade.yml" },
         { id: "hooks", path: ".husky/pre-commit" },
         { id: "cursor", path: ".cursor/rules/atlas-core.mdc" },
         { id: "docker", path: "docker-compose.yml" },

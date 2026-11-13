@@ -230,7 +230,7 @@ Failures print command, cwd, exit status, stdout, and stderr for the failing sta
 
 ---
 
-## Commands (v0.1)
+## Commands
 
 ### `atlas init`
 
@@ -395,6 +395,17 @@ Both generators:
 - Support `--dry-run` and `--json` using the shared CLI output model
 - Emit repository-relative paths and `followUpActions` for automation
 
+### `atlas generate <custom-id> <name>`
+
+Run a consumer-defined generator declared in `atlas.config.json#generators` (see
+[custom generators](atlas-contract.md#custom-generators-schema-v1-optional)). Supports `--dry-run`
+and `--json`; existing files are conflicts (exit `7`).
+
+```bash
+pnpm atlas generate data-table billing-history --dry-run
+pnpm atlas generate data-table billing-history
+```
+
 ### `atlas generate list`
 
 List supported generators with machine-readable metadata for humans and coding agents.
@@ -404,9 +415,9 @@ atlas generate list
 atlas generate list --json
 ```
 
-JSON output includes generator `id`, `description`, `usage`, `targetOwnership`, `conflictBehavior`,
-required/optional arguments, and supported flags. The same inventory is also available via
-`atlas context --json` → `commands.generators`.
+JSON output includes generator `id`, `source` (`builtin` or `custom`), `description`, `usage`,
+`targetOwnership`, `conflictBehavior`, required/optional arguments, and supported flags. The same
+inventory is also available via `atlas context --json` → `commands.generators`.
 
 ### `atlas context`
 
@@ -449,26 +460,29 @@ references are filtered to files that exist in that workspace.
 ### `atlas enable`
 
 Opt-in consumer tooling. Default init stays lean; heavier quality and convenience tools are adopted
-explicitly. **Published Atlas 1.1.0 does not include this command.** Until Changesets assigns a CLI
-version that contains `enable`, generated consumers invoke
-`pnpm dlx @blitzcraftlabs/atlas@<next-cli-release> enable …`. That pin is **not** the consumer
-`platform.baseline.atlasVersion` when the baseline predates `enable`. After the assigned release is
-out of `CLI_RELEASES_WITHOUT_ENABLE`, generated enable commands use that CLI version.
-`atlas upgrade` does not install optional tooling, including a same-version upgrade to 1.1.0.
+explicitly. `atlas enable` ships in every npm release from **1.2.0** onward, so generated consumers
+run it through the pinned `pnpm atlas` script. `atlas upgrade` never installs optional tooling,
+including a same-version upgrade.
 
 ```bash
-pnpm dlx @blitzcraftlabs/atlas@<next-cli-release> enable list --json
-pnpm dlx @blitzcraftlabs/atlas@<next-cli-release> enable storybook --dry-run
-pnpm dlx @blitzcraftlabs/atlas@<next-cli-release> enable docs
+pnpm atlas enable list --json
+pnpm atlas enable storybook --dry-run
+pnpm atlas enable docs
 ```
+
+Consumers whose `platform.baseline.atlasVersion` is still `1.0.x` or `1.1.0` (releases without
+`enable`) can either upgrade first or invoke a newer CLI once:
+`pnpm dlx @blitzcraftlabs/atlas@<1.2.0 or later> enable …`. That pin does not change the recorded
+baseline.
 
 `enable list --json` reports `status` (`absent` | `partial` | `installed` | `conflicted` |
 `replaceable`) plus `validationCommand`. `installed` means packaged/generated files match; it does
 not mean the validation command passed.
 
-Capabilities: `docs`, `storybook`, `visual`, `perf-ci`, `security`, `updates`, `coverage`, `hooks`,
-`cursor`, `docker`. `visual` requires `storybook` to be fully installed. Shipped visual PNG
-baselines are compared only in `mcr.microsoft.com/playwright:v<playwright-version>-noble` via
+Capabilities: `docs`, `storybook`, `visual`, `perf-ci`, `security`, `updates`, `upgrades`,
+`coverage`, `hooks`, `cursor`, `docker`. `visual` requires `storybook` to be fully installed.
+Shipped visual PNG baselines are compared only in
+`mcr.microsoft.com/playwright:v<playwright-version>-noble` via
 `pnpm --filter @atlas/ui test:visual:docker`; generated comparison CI never updates snapshots.
 Enablement plans all writes before applying them, copies packaged assets, and merges `package.json`
 keys without overwriting customized files. Known-stale documentation is replaced only when the full
@@ -530,22 +544,38 @@ hands the operation to that exact package. `--to` remains an exact override. `--
 explicit fixture/maintainer override. Normal installed-package usage does not read a consumer
 `releases/` tree. Missing packaged evidence fails closed.
 
-Supported sources are adjacent **npm-published** releases. An unpublished snapshot is never a
+When `platform.baseline` is more than one published release behind the target, `atlas upgrade` plans
+a **multi-release path** from the npm version list (for example
+`1.1.0 → 1.2.0 → 1.2.1 → 1.2.2 → 1.3.1 → 1.3.2 → 1.3.3`). Each hop runs that release's CLI, which
+applies, installs, validates with Doctor, and advances the baseline before the next hop starts. The
+walk stops at the first blocked or failed hop; rerun `pnpm atlas upgrade` to continue from the new
+baseline. `--dry-run --json` returns the full path in `result.hops` without spawning any CLI. The
+worktree must be clean before the first hop (or pass `--allow-dirty`). Consumers whose local CLI
+predates multi-release support run it once with the latest CLI:
+`pnpm dlx @blitzcraftlabs/atlas@latest upgrade`.
+
+Each individual CLI supports adjacent **npm-published** releases. An unpublished snapshot is never a
 consumer upgrade source. A GitHub tag or GitHub Release is not publication proof. The release that
 repairs the unpublished `1.2.3` snapshot also accepts published `1.2.2` consumers. `1.3.0` is a
 GitHub-only release, so it does not take that recovery slot. Repository `releases/0.1.0` and
 `releases/0.2.0` are rehearsal-only and are not public support.
 
-| Option              | Description                                                                  |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `--to <version>`    | Exact Atlas release. Omit to use the latest stable published release         |
-| `--dry-run`         | Full planning path without filesystem mutations                              |
-| `--json`            | Machine-readable plan and result on stdout                                   |
-| `--allow-dirty`     | Allow mutations when the Git worktree has uncommitted changes                |
-| `--skip-validation` | Skip post-upgrade `atlas doctor` (fixture/CI only)                           |
-| `--releases-dir`    | Explicit fixture/maintainer snapshot directory; not used for normal upgrades |
+| Option              | Description                                                                     |
+| ------------------- | ------------------------------------------------------------------------------- |
+| `--to <version>`    | Exact Atlas release. Omit to use the latest stable published release            |
+| `--dry-run`         | Full planning path without filesystem mutations                                 |
+| `--json`            | Machine-readable plan and result on stdout                                      |
+| `--allow-dirty`     | Allow mutations when the Git worktree has uncommitted changes                   |
+| `--merge`           | Apply clean three-way merges for modified synced files; write conflict sidecars |
+| `--skip-validation` | Skip post-upgrade `atlas doctor` (fixture/CI only)                              |
+| `--releases-dir`    | Explicit fixture/maintainer snapshot directory; not used for normal upgrades    |
 
-Blocking conflicts refuse all mutations. `platform.baseline` advances only after a fully successful
+Blocking conflicts refuse all mutations. For a non-security synced file you modified that Atlas also
+changed, the plan runs a three-way merge (base = source release, ours = your file, theirs = target
+release; uses `git merge-file`) and reports `autoMerge: clean | conflict`. With `--merge`, clean
+merges are applied (`action: merge`) and no longer block; conflicting merges stay blocking and are
+written to `.atlas/merge/<path>.merge` with labelled conflict markers for review. Security-critical
+paths are never merged automatically. `platform.baseline` advances only after a fully successful
 apply and `atlas doctor` validation. See [upgrades](upgrades.md) and
 [release snapshots](../../releases/README.md).
 
@@ -640,14 +670,16 @@ Machine-readable `--json` output may include:
 
 ## Current CLI commands
 
-| Command                | Capability                                             | Status in v0.1 |
-| ---------------------- | ------------------------------------------------------ | -------------- |
-| `atlas init <project>` | Empty-directory bootstrap from packaged assets         | Implemented    |
-| `atlas init`           | Initialize metadata in an existing compatible checkout | Implemented    |
-| `atlas generate …`     | Feature + page shells                                  | Implemented    |
-| `atlas doctor`         | Diagnostics                                            | Implemented    |
-| `atlas upgrade`        | Planning, dry-run, apply, JSON output                  | Implemented    |
-| Upgrade contract       | Baseline + rehearsal; see [upgrades](upgrades.md)      | Implemented    |
+| Command                     | Capability                                                    | Since |
+| --------------------------- | ------------------------------------------------------------- | ----- |
+| `atlas init <project>`      | Empty-directory bootstrap from packaged assets                | 1.0   |
+| `atlas init`                | Initialize metadata in an existing compatible checkout        | 1.0   |
+| `atlas generate …`          | Feature + page shells; `generate list` inventory              | 1.0   |
+| `atlas context`             | Resolved project contract for humans and agents               | 1.0   |
+| `atlas doctor`              | Contract and architecture diagnostics                         | 1.0   |
+| `atlas sync infrastructure` | Starter → reference template sync (maintainer checkouts)      | 1.0   |
+| `atlas upgrade`             | Planning, dry-run, apply, JSON output, latest-release handoff | 1.0   |
+| `atlas enable <id>`         | Opt-in consumer tooling capabilities                          | 1.2   |
 
 The CLI exposes explicit command registration, shared context loading, exit codes, and output
 conventions so additional commands can be added without redesigning the foundation.

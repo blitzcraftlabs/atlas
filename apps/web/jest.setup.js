@@ -24,8 +24,7 @@ beforeEach(() => {
 });
 
 // Setup MSW for API mocking
-// Note: MSW v1 has limitations in Node.js/jsdom environments
-// For most tests, prefer mocking fetch directly with jest.fn()
+// Default handlers live in src/test/setup/msw.ts (MSW v2); override per test with server.use().
 setupMSW();
 
 // Mock sessionStorage
