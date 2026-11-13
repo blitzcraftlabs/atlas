@@ -39,7 +39,7 @@ Automation in this repository uses `github.repository` / `GITHUB_REPOSITORY` and
 | GitHub CodeQL code scanning           | enabled                      | public repo              | Default setup `configured` (2026-09-22); dynamic workflow `dynamic/github-code-scanning/codeql`; **not** a required check |
 | GitHub Code Quality                   | not configured               | public repo              | `GET /code-quality/setup` → `not-configured`; distinct from CodeQL security scanning and Atlas UI Quality                 |
 | Codecov                               | reporting                    | public repo              | CI uploads the repository aggregate; `fail_ci_if_error: false`; risk floors stay local                                    |
-| Vercel GitHub App                     | intentionally not connected  | public Atlas repo        | No Vercel project linked to `blitzcraftlabs/atlas`; showcase lives in `atlas-showcase`                                    |
+| Vercel GitHub App                     | intentionally not connected  | public Atlas repo        | No Vercel project linked to `blitzcraftlabs/atlas`; the marketing site lives in `shipwithatlas`                           |
 | ChatGPT / Codex GitHub App            | manual verification required | selected-repo org app    | Org installation exists; user token cannot list selected repositories                                                     |
 | Cursor GitHub App                     | organization-wide            | all org repos            | `repository_selection: all`; no repo-specific action                                                                      |
 
@@ -59,9 +59,11 @@ CI supplies Istanbul `coverage-final.json` from `@atlas/web`, `@atlas/reference`
 
 ## Vercel
 
-The BlitzCraft Vercel team has Git-linked projects for other repositories, including
-`atlas-showcase`. None of the listed projects link to `blitzcraftlabs/atlas`. Atlas itself is a
-forkable template; the public marketing site is [shipwithatlas.com](https://shipwithatlas.com).
+The BlitzCraft Vercel team has Git-linked projects for other repositories. None of them link to
+`blitzcraftlabs/atlas`. Atlas itself is a forkable template; the public marketing site
+[shipwithatlas.com](https://shipwithatlas.com) is built from
+[`blitzcraftlabs/shipwithatlas`](https://github.com/blitzcraftlabs/shipwithatlas), an Atlas consumer
+workspace. The earlier `atlas-showcase` repository is retired and archived.
 
 Connecting Vercel to the public Atlas repository is **not required** for template CI or GitHub
 Releases. Do not grant the Vercel GitHub App extra repositories unless a maintainer later wants

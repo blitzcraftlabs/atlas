@@ -98,12 +98,14 @@ need duplicate styling utility packages unless they import those libraries direc
 
 ## MSW (tests)
 
-Atlas standardizes on **MSW v1** (`rest`, `setupServer` from `msw/node`) in application Jest tests.
-Canonical examples live in `docs/how-we-build/testing.md` and `apps/*/src/test/setup/msw.ts`.
+Atlas standardizes on **MSW v2** (`http`, `HttpResponse`, `setupServer` from `msw/node`) in
+application Jest tests, with `jest-fixed-jsdom` as the test environment. Canonical examples live in
+`docs/how-we-build/testing.md` and `apps/*/src/test/setup/msw.ts`. Keep `msw`, `jest-fixed-jsdom`,
+`babel-jest` and `@babel/plugin-transform-modules-commonjs` aligned across `apps/web` and
+`apps/reference`.
 
-MSW v2 migration (`http`, `HttpResponse`) is tracked in
-[follow-up backlog](../audit/follow-up-backlog.md)—do not document v2 APIs as current without
-migrating handlers.
+MSW 3 requires Node.js `>=22.12.0`, above the current Atlas engine floor (`>=22.0.0`). Raise the
+floor before adopting it.
 
 ---
 

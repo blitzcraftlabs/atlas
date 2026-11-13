@@ -22,12 +22,31 @@ export function captureConsumerPlatformBaseline(options: {
   contractSchemaVersion: number;
   manifest: AppInfrastructureManifest;
   repositorySyncedPathChecksums?: Record<string, string>;
+  /**
+   * Atlas-shipped content for application synced paths in `atlasVersion`. After an upgrade the
+   * baseline must record what Atlas shipped, not the consumer's file: otherwise a customization
+   * Atlas did not touch in this release becomes the new "unchanged" baseline and the next release
+   * that changes the file would overwrite it (#125). Omit at `atlas init`, where the files on disk
+   * are exactly what Atlas shipped.
+   */
+  targetSyncedContents?: Record<string, string>;
 }): PlatformBaseline {
-  const syncedPathChecksums = captureSyncedPathChecksumsStrict({
+  const capturedFromDisk = captureSyncedPathChecksumsStrict({
     repoRoot: options.repoRoot,
     applicationRoot: options.applicationRoot,
     syncedPaths: options.manifest.syncedPaths,
   });
+  const syncedPathChecksums = options.targetSyncedContents
+    ? Object.fromEntries(
+        Object.entries(capturedFromDisk).map(([relativePath, checksum]) => {
+          const shipped = options.targetSyncedContents?.[relativePath];
+          return [
+            relativePath,
+            shipped === undefined ? checksum : computeBaselineChecksum(shipped),
+          ];
+        })
+      )
+    : capturedFromDisk;
 
   const repositorySyncedPathChecksums =
     options.repositorySyncedPathChecksums ??

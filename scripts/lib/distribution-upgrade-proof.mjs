@@ -244,7 +244,9 @@ function ownedDependencyValuesDiffer(left, right) {
 }
 
 function packagedSnapshotExists(cliInstalled, version) {
-  return existsSync(path.join(packagedSnapshotRoot(cliInstalled, version), RELEASE_SNAPSHOT_FILENAME));
+  return existsSync(
+    path.join(packagedSnapshotRoot(cliInstalled, version), RELEASE_SNAPSHOT_FILENAME)
+  );
 }
 
 export function selectInstalledUpgradeSource(catalog, cliInstalled) {
@@ -286,6 +288,23 @@ function alignWorkspacePackageVersions(consumerRoot, packageVersions) {
     manifest.version = expectedVersion;
     writeJson(manifestPath, manifest);
   }
+}
+
+/**
+ * A consumer on the previous release carries that release's template manifest. The bootstrap
+ * writes the checkout's manifest, which lists synced paths added after the previous release;
+ * leaving it would make Doctor demand baseline evidence the previous release never had.
+ */
+function alignInfrastructureManifestSyncedPaths(consumerRoot, previousManifest) {
+  const manifestPath = path.join(consumerRoot, "templates", "app-infrastructure.manifest.json");
+  if (!existsSync(manifestPath)) {
+    return;
+  }
+  const manifest = readJson(manifestPath, manifestPath);
+  manifest.syncedPaths = [...previousManifest.syncedPaths].sort((left, right) =>
+    left.localeCompare(right)
+  );
+  writeJson(manifestPath, manifest);
 }
 
 function writePreviousBaseline(consumerRoot, previousManifest, applicationRoot) {
@@ -361,6 +380,7 @@ export function materializePreviousProductionConsumer(options) {
 
   alignWorkspacePackageVersions(options.consumerRoot, previousManifest.packageVersions);
   alignOwnedManifestFields(options.consumerRoot, previousManifest.manifestFields);
+  alignInfrastructureManifestSyncedPaths(options.consumerRoot, previousManifest);
   writePreviousBaseline(options.consumerRoot, previousManifest, applicationRoot);
 
   return {

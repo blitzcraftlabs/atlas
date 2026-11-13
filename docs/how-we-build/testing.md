@@ -76,18 +76,19 @@ Use for **consistent API responses**:
 
 ```typescript
 import { fixtures } from "@/test";
+import { http, HttpResponse } from "msw";
 
 // Success response
 server.use(
-  rest.get("*/users/:id", (_req, res, ctx) => {
-    return res(ctx.json(fixtures.api.userDetailSuccess()));
+  http.get("*/users/:id", () => {
+    return HttpResponse.json(fixtures.api.userDetailSuccess());
   })
 );
 
 // Error response
 server.use(
-  rest.get("*/users/:id", (_req, res, ctx) => {
-    return res(ctx.status(404), ctx.json(fixtures.errors.error404));
+  http.get("*/users/:id", () => {
+    return HttpResponse.json(fixtures.errors.error404, { status: 404 });
   })
 );
 ```
@@ -114,18 +115,18 @@ const project = projectFactory.build({ ownerId: user.id });
 
 ## MSW (Mock Service Worker)
 
-Atlas uses **MSW v1** (`rest` API). Default handlers are already set up in `src/test/setup/msw.ts`.
-Override per-test when needed. MSW v2 migration is tracked in
-[follow-up backlog](../audit/follow-up-backlog.md).
+Atlas uses **MSW v2** (`http` handlers returning `HttpResponse`). Default handlers are already set
+up in `src/test/setup/msw.ts`. Override per-test with `server.use(...)`; overrides reset after each
+test.
 
 ```typescript
 import { server } from '@/test';
-import { rest } from 'msw';
+import { http, HttpResponse } from 'msw';
 
 test('handles loading error', async () => {
   server.use(
-    rest.get('*/users', (_req, res, ctx) => {
-      return res(ctx.status(500), ctx.json({ error: 'Failed' }));
+    http.get('*/users', () => {
+      return HttpResponse.json({ error: 'Failed' }, { status: 500 });
     })
   );
 
@@ -134,6 +135,17 @@ test('handles loading error', async () => {
   expect(await screen.findByRole('alert')).toBeInTheDocument();
 });
 ```
+
+Handlers receive `{ request, params }`. Read query strings with `new URL(request.url).searchParams`
+and bodies with `await request.json()`. The shared handlers import Node's `URL` because
+`jest.setup.js` replaces the global `URL` with a partial mock.
+
+**Jest environment.** Application Jest projects run in
+[`jest-fixed-jsdom`](https://github.com/mswjs/jest-fixed-jsdom), which keeps Node's `fetch`,
+`Request`, `Response` and streams available inside jsdom. MSW v2 also depends on a few ESM-only
+packages (`rettime`, `until-async`, `@open-draft/*`). `jest.config.js` compiles those to CommonJS
+with `babel-jest`. If a future MSW release adds another ESM-only dependency, add it to the
+`transformIgnorePatterns` allow-list.
 
 ## Query Priority
 
@@ -150,11 +162,13 @@ Use these queries in order (most to least preferred):
 ### Loading State
 
 ```typescript
+import { delay, http, HttpResponse } from 'msw';
+
 test('shows loading spinner', async () => {
   server.use(
-    rest.get('*/users', async (_req, res, ctx) => {
-      await new Promise(r => setTimeout(r, 100));
-      return res(ctx.json([]));
+    http.get('*/users', async () => {
+      await delay(100);
+      return HttpResponse.json([]);
     })
   );
 
@@ -184,10 +198,10 @@ test('submits form', async () => {
 ```typescript
 test('displays validation error', async () => {
   server.use(
-    rest.post('*/users', (_req, res, ctx) => {
-      return res(
-        ctx.status(400),
-        ctx.json({ code: 'VALIDATION_ERROR', message: 'Invalid email' })
+    http.post('*/users', () => {
+      return HttpResponse.json(
+        { code: 'VALIDATION_ERROR', message: 'Invalid email' },
+        { status: 400 }
       );
     })
   );
@@ -229,7 +243,7 @@ screen.getByTestId("submit-button");
 jest.mock("@tanstack/react-query");
 
 // ❌ Inline mock data
-server.use(rest.get("*", (_req, res, ctx) => res(ctx.json({ id: 1, name: "Test" }))));
+server.use(http.get("*", () => HttpResponse.json({ id: 1, name: "Test" })));
 
 // ❌ Use getBy for async content
 screen.getByText("Loading..."); // Use findBy instead
@@ -243,7 +257,7 @@ user.click(button); // Missing await
 screen.getByRole("button", { name: /submit/i });
 
 // ✅ Mock the API layer
-server.use(rest.get("*/users", (_req, res, ctx) => res(ctx.json(fixtures.users))));
+server.use(http.get("*/users", () => HttpResponse.json(fixtures.users)));
 
 // ✅ Use findBy for async
 await screen.findByText("Welcome");

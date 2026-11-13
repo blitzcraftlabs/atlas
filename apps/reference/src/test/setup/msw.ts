@@ -4,10 +4,12 @@
  * Provides a configured MSW server for intercepting HTTP requests during tests.
  * This allows testing components and hooks that make API calls without hitting real endpoints.
  *
- * NOTE: Currently uses MSW v1 API. Migration to v2 is tracked in follow-up backlog.
+ * Uses the MSW v2 API (`http` handlers returning `HttpResponse`).
  */
 
-import { rest } from "msw";
+import { URL as NodeURL } from "node:url";
+
+import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 
 import { fixtures } from "../fixtures";
@@ -19,47 +21,47 @@ import { fixtures } from "../fixtures";
  */
 export const defaultHandlers = [
   // Health check endpoint
-  rest.get("*/health", (_req, res, ctx) => {
-    return res(ctx.json(fixtures.api.healthSuccess));
+  http.get("*/health", () => {
+    return HttpResponse.json(fixtures.api.healthSuccess);
   }),
 
   // Users list endpoint
-  rest.get("*/users", (req, res, ctx) => {
-    const page = parseInt(req.url.searchParams.get("page") || "1");
-    const pageSize = parseInt(req.url.searchParams.get("pageSize") || "20");
+  http.get("*/users", ({ request }) => {
+    // Node's URL: jest.setup.js replaces the global URL with a partial mock without searchParams.
+    const url = new NodeURL(request.url);
+    const page = parseInt(url.searchParams.get("page") || "1");
+    const pageSize = parseInt(url.searchParams.get("pageSize") || "20");
 
-    return res(ctx.json(fixtures.api.userListSuccess({ page, pageSize })));
+    return HttpResponse.json(fixtures.api.userListSuccess({ page, pageSize }));
   }),
 
   // User detail endpoint
-  rest.get("*/users/:userId", (req, res, ctx) => {
-    const { userId } = req.params;
-    return res(ctx.json(fixtures.api.userDetailSuccess({ userId: userId as string })));
+  http.get("*/users/:userId", ({ params }) => {
+    const { userId } = params;
+    return HttpResponse.json(fixtures.api.userDetailSuccess({ userId: userId as string }));
   }),
 
   // User create endpoint
-  rest.post("*/users", async (req, res, ctx) => {
-    const body = await req.json();
-    return res(ctx.status(201), ctx.json(fixtures.api.userCreateSuccess(body)));
+  http.post("*/users", async ({ request }) => {
+    const body = (await request.json()) as { email: string; name: string };
+    return HttpResponse.json(fixtures.api.userCreateSuccess(body), { status: 201 });
   }),
 
   // User update endpoint
-  rest.patch("*/users/:userId", async (req, res, ctx) => {
-    const { userId } = req.params;
-    const body = await req.json();
-    return res(
-      ctx.json(
-        fixtures.api.userUpdateSuccess({
-          userId: userId as string,
-          updates: body,
-        })
-      )
+  http.patch("*/users/:userId", async ({ params, request }) => {
+    const { userId } = params;
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      fixtures.api.userUpdateSuccess({
+        userId: userId as string,
+        updates: body,
+      })
     );
   }),
 
   // User delete endpoint
-  rest.delete("*/users/:userId", (_req, res, ctx) => {
-    return res(ctx.status(204));
+  http.delete("*/users/:userId", () => {
+    return new HttpResponse(null, { status: 204 });
   }),
 ];
 

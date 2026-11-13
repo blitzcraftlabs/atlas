@@ -56,10 +56,22 @@ that Storybook, Docker, coverage, or hooks are operational. Each capability list
 | `perf-ci`   | Lighthouse + bundle GitHub workflows                   | Yes                    | `pnpm perf:lhci` and `pnpm --filter @atlas/web perf:analyze`                            |
 | `security`  | `pnpm audit` script + workflow                         | No                     | `pnpm security:check`                                                                   |
 | `updates`   | Dependabot                                             | No                     | inspect `.github/dependabot.yml`                                                        |
+| `upgrades`  | Weekly Atlas upgrade PR (or issue when blocked)        | No                     | `pnpm atlas upgrade --dry-run --json`                                                   |
 | `coverage`  | Critical-subsystem coverage floors                     | No                     | `pnpm test:risk-coverage`                                                               |
 | `hooks`     | Husky + lint-staged                                    | No                     | exercise the hook in a Git repository                                                   |
 | `cursor`    | Cursor rule + skill adapters                           | No                     | `enable cursor --dry-run --json`                                                        |
 | `docker`    | Compose scaffold and infra example                     | No                     | `docker compose` locally; image build files already exist from init                     |
+
+`upgrades` adds `.github/workflows/atlas-upgrade.yml` and `scripts/atlas-upgrade-pr.mjs`. Each week
+(or on `workflow_dispatch`) it runs `pnpm atlas upgrade --dry-run --json`. When a newer release
+applies cleanly it commits the upgrade to the rolling `atlas/upgrade` branch and opens or updates
+**one** pull request listing applied files, files to review, and validation results. When the plan
+is blocked (`merge-required`, `security-critical`) or validation fails, it changes nothing and opens
+or updates **one** issue labelled `atlas-upgrade` listing what needs a human. It needs **Settings →
+Actions → General → Allow GitHub Actions to create and approve pull requests**. Pull requests opened
+with `GITHUB_TOKEN` do not trigger other workflows; add an `ATLAS_UPGRADE_TOKEN` secret
+(fine-grained PAT or GitHub App token) if CI must run on them. Dependabot (`updates`) bumps
+dependencies but never runs `atlas upgrade`, so the two are complementary.
 
 `security` fails on high/critical advisories unless a documented exception matches **advisory id,
 package name, version, and every finding path**. An exempt finding that is also reachable through a

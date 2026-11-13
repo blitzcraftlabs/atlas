@@ -1,41 +1,4 @@
 {
   "schemaVersion": 1,
-  "exceptions": [
-    {
-      "advisory": "GHSA-jmr9-qjv8-65gv",
-      "packageName": "extract-zip",
-      "owner": "@atlas-maintainers",
-      "reason": "extract-zip@2.0.1 is pulled only through @lhci/cli \u2192 lighthouse \u2192 puppeteer-core \u2192 @puppeteer/browsers. The registry reports no patched extract-zip line (patched_versions <0.0.0). Upgrading Lighthouse/Puppeteer enough to drop 2.0.1 is a tooling major-line change outside this security-hardening scope.",
-      "compensatingControl": "Dev-only LHCI/Lighthouse path; Atlas never extracts attacker-supplied zip archives. Browser downloads are vendor artifacts on trusted CI/developer hosts, not a production request handler or client bundle.",
-      "reviewedOn": "2026-08-29",
-      "expiresOn": "2026-11-27"
-    },
-    {
-      "advisory": "GHSA-7pqw-9j4j-h8q3",
-      "packageName": "extract-zip",
-      "owner": "@atlas-maintainers",
-      "reason": "Same extract-zip@2.0.1 transitive path as GHSA-jmr9-qjv8-65gv (@lhci/cli \u2192 lighthouse \u2192 puppeteer-core \u2192 @puppeteer/browsers). The registry still reports no patched extract-zip line (patched_versions <0.0.0).",
-      "compensatingControl": "Dev-only LHCI/Lighthouse path; Atlas never extracts attacker-supplied zip archives or symlink entries from untrusted sources. Browser downloads are vendor artifacts on trusted CI/developer hosts, not a production request handler or client bundle.",
-      "reviewedOn": "2026-09-10",
-      "expiresOn": "2026-11-27"
-    },
-    {
-      "advisory": "GHSA-ph9p-34f9-6g65",
-      "packageName": "tmp",
-      "owner": "@atlas-maintainers",
-      "reason": "Vulnerable tmp@0.0.33 / tmp@0.1.0 come from @turbo/gen \u2192 inquirer/external-editor and from @lhci/cli. The patched line is tmp >=0.2.6, which changes the callback API those inquirer 6/7 stacks still call. A tmp 0.2 override is not a compatible refresh for this PR.",
-      "compensatingControl": "CLI/dev-only. The GHSA requires untrusted prefix/postfix/dir options; Atlas and these tools use library-controlled temp names, not attacker-supplied tmp options. Not present in production application bundles or server runtime.",
-      "reviewedOn": "2026-08-29",
-      "expiresOn": "2026-11-27"
-    },
-    {
-      "advisory": "GHSA-mrhx-c7xc-m3w5",
-      "packageName": "zod",
-      "owner": "@atlas-maintainers",
-      "reason": "Atlas workspaces now depend on zod 4.6.7 (patched). The only remaining zod 3 copy is zod@3.23.8 at apps__reference > @lhci/cli@0.14 > lighthouse > puppeteer-core > chromium-bidi, a dev-only Lighthouse CI path with no patched zod 3 release. blitzcraftlabs/atlas#105 upgrades @lhci/cli to 0.16, which removes that path; drop this exception when it merges.",
-      "compensatingControl": "Dev-only: chromium-bidi validates CDP/BiDi protocol messages between Lighthouse and a local Chromium during `perf:lhci`. It never parses user input and is not part of any production bundle.",
-      "reviewedOn": "2026-11-13",
-      "expiresOn": "2026-12-07"
-    }
-  ]
+  "exceptions": []
 }

@@ -57,7 +57,7 @@ export const ATLAS_MANAGED_MANIFEST_FIELDS: readonly ManagedManifestField[] = [
  * Values Atlas shipped for a field before it became Atlas-owned. Releases before ownership do not
  * record these fields, so the upgrader cannot tell an untouched starter value from a consumer edit.
  * A consumer value listed here is the value Atlas itself shipped and is adopted on upgrade; any
- * other value stays a consumer modification. Every release from 0.1.0 through 1.3.3 shipped zod
+ * other value stays a consumer modification. Every release from 0.1.0 through 1.4.0 shipped zod
  * 3.24.1 and @hookform/resolvers ^4.1.3 (zod 4 code in synced Atlas paths needs both moved).
  */
 export const PRE_OWNERSHIP_SHIPPED_VALUES: Readonly<Record<string, readonly string[]>> = {

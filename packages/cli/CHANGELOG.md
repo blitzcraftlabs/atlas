@@ -1,5 +1,67 @@
 # @blitzcraftlabs/atlas
 
+## 1.4.0
+
+### Minor Changes
+
+- 3ce35c5: Custom generators: declare consumer-owned generators in `atlas.config.json#generators`
+  (template directory, target path, placeholders such as `{{pascal}}`) and run them with
+  `atlas generate <id> <name>`. `atlas generate list` and `atlas context` include them with
+  `source: "custom"`.
+- 2ef283f: Add `atlas enable upgrades`: a weekly consumer workflow that runs `pnpm atlas upgrade`,
+  opens one pull request when a newer Atlas release applies cleanly, and opens one issue listing
+  blocking files when it needs a human.
+- bacb4be: `atlas upgrade` now upgrades consumers that are several published releases behind. It
+  plans a path through every npm-published release (honoring recovery bridges such as 1.2.2 →
+  1.3.1), runs each hop with that release's CLI, and stops at the first hop that needs attention.
+  `--dry-run --json` reports the full path in `result.hops`.
+- ef03f67: Add a generic OpenID Connect provider beside Google. Set `AUTH_OIDC_ISSUER` and
+  `AUTH_OIDC_CLIENT_ID` (plus an optional secret and scopes) to sign in through
+  `/api/auth/oidc/start` with any OIDC issuer. Endpoints come from the validated discovery document,
+  and switching providers no longer requires editing synced auth files.
+- 6abce86: `atlas upgrade` now runs a three-way merge for synced files you modified that Atlas also
+  changed. Plans report `autoMerge: clean | conflict`. With `--merge`, clean merges are applied and
+  no longer block the upgrade; conflicting merges are written to `.atlas/merge/<path>.merge` for
+  review. Security-critical paths are never merged automatically.
+
+### Patch Changes
+
+- cb42d11: Migrate application test mocking from MSW v1 to MSW v2 (`http` handlers returning
+  `HttpResponse`). Application Jest projects now run in `jest-fixed-jsdom` and compile MSW's
+  ESM-only dependencies with `babel-jest`. A new test proves the shared MSW server intercepts
+  requests. Consumers with custom MSW handlers should replace `rest.*((req, res, ctx) => …)` with
+  `http.*(({ request, params }) => …)`.
+- 96d6a1b: Fix: after `atlas upgrade`, `platform.baseline` now records the Atlas-shipped checksum
+  for each application synced path instead of the consumer's file. Previously a customization of a
+  file that Atlas did not change in that release became the new "unchanged" baseline, so the next
+  release that changed the file overwrote it.
+
+## 1.3.4
+
+### Patch Changes
+
+- 1e739c3: Release pipeline: GitHub Releases are created as drafts and made public only after the
+  npm package is published and verified, and a daily consistency check fails on any public Release
+  without a matching npm version.
+- 167e8b4: Security: upgrade the starter's `@lhci/cli` from `^0.14.0` to `^0.16.0` (Lighthouse 13,
+  `@puppeteer/browsers` 3), which removes `extract-zip@2.0.1` (GHSA-jmr9-qjv8-65gv,
+  GHSA-7pqw-9j4j-h8q3) and `tmp@0.1.0` (GHSA-ph9p-34f9-6g65, GHSA-52f5-9888-hmc6) from the
+  dependency tree. The consumer `security-audit` capability template no longer ships exceptions for
+  those advisories. Existing consumers that enable the security audit while still on `@lhci/cli`
+  0.14 should bump `@lhci/cli` to `^0.16.0` in `apps/web/package.json`; `@lhci/cli` 0.16 requires
+  Node.js
+
+  > = 22.19.
+
+- eac827b: Security: the starter's Sentry tunnel route (`apps/web/src/app/monitoring/route.ts`) no
+  longer builds its upstream URL from the `o`/`r` query parameters, which allowed unauthenticated
+  requests to make the server POST to arbitrary HTTPS hosts (SSRF / open proxy). The tunnel now
+  forwards only to the ingest endpoints of the app's configured DSNs (`NEXT_PUBLIC_SENTRY_DSN`,
+  `SENTRY_DSN`), rejects other projects with 403, caps envelopes at 2 MiB (logging a
+  `sentry_tunnel_envelope_rejected` warning when it drops one), and forwards bodies as bytes.
+  Projects generated from earlier Atlas versions own this route and should copy the fix
+  (`src/app/monitoring/route.ts` and `src/config/sentry-tunnel.ts`).
+
 ## 1.3.3
 
 ### Patch Changes

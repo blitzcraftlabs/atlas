@@ -9,7 +9,7 @@
 | **Platform conventions**    | `docs/how-we-build/` | folder-structure, architecture-ownership, api |
 | **Architecture decisions**  | `docs/adr/`          | Why we chose X over Y                         |
 | **Public capabilities**     | `docs/public/`       | FAQ, architecture, capabilities               |
-| **Claims and evidence**     | `docs/audit/`        | claims-register, showcase follow-up           |
+| **Claims and evidence**     | `docs/audit/`        | claims-register, showcase follow-up (closed)  |
 | **Contributing**            | `CONTRIBUTING.md`    | Access model, PRs, validation                 |
 | **Security reporting**      | `SECURITY.md`        | Private vulnerability reporting               |
 | **Agent rules**             | `AGENTS.md`          | Coding agent authority                        |
@@ -75,8 +75,8 @@ AI-generated or experimental documentation:
 
 ### 7. Claims Register Reviews
 
-Update [claims-register.md](../audit/claims-register.md) when public claims, CI gates, or Showcase
-copy change. Review policy:
+Update [claims-register.md](../audit/claims-register.md) when public claims, CI gates, or
+shipwithatlas.com copy change. Review policy:
 
 - on relevant PRs;
 - quarterly;
