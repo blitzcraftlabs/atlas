@@ -1,18 +1,23 @@
 import {
   atlasDlxForEnable,
   cliReleaseIncludesEnable,
-  ENABLE_CLI_RELEASE_PLACEHOLDER,
+  FIRST_CLI_RELEASE_WITH_ENABLE,
 } from "../init/cli-release";
 
 describe("atlas enable CLI version selection", () => {
-  it("keeps the placeholder for published releases that lack enable", () => {
+  it("pins the first enable-capable release for baselines that lack enable", () => {
     expect(cliReleaseIncludesEnable("1.1.0")).toBe(false);
     expect(atlasDlxForEnable("1.1.0")).toBe(
-      `pnpm dlx @blitzcraftlabs/atlas@${ENABLE_CLI_RELEASE_PLACEHOLDER}`
+      `pnpm dlx @blitzcraftlabs/atlas@${FIRST_CLI_RELEASE_WITH_ENABLE}`
     );
     expect(atlasDlxForEnable("1.1.0", { runningCliVersion: "1.1.0" })).toBe(
-      `pnpm dlx @blitzcraftlabs/atlas@${ENABLE_CLI_RELEASE_PLACEHOLDER}`
+      `pnpm dlx @blitzcraftlabs/atlas@${FIRST_CLI_RELEASE_WITH_ENABLE}`
     );
+  });
+
+  it("treats 1.2.0 as the first published release with enable", () => {
+    expect(FIRST_CLI_RELEASE_WITH_ENABLE).toBe("1.2.0");
+    expect(cliReleaseIncludesEnable(FIRST_CLI_RELEASE_WITH_ENABLE)).toBe(true);
   });
 
   it("pins enable to a running CLI that includes the command, not the consumer baseline", () => {

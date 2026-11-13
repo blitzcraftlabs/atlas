@@ -137,11 +137,9 @@ typical fork behavior — not requirements.
 Optional consumer tooling (Storybook, visual tests, performance CI, security workflows, Dependabot,
 the `upgrades` PR workflow, coverage floors, Git hooks, Cursor adapters, Docker Compose) is **not**
 applied by `atlas upgrade`, including a same-version upgrade. Root `Dockerfile` and `.dockerignore`
-are repository-level Atlas template surfaces, not opt-in enablement. Published Atlas 1.1.0 does not
-contain `atlas enable`. After a CLI release that includes `enable` is published, adopt those
-capabilities with that CLI — which may differ from the recorded platform baseline — using
-`atlas enable <id> --dry-run` then `atlas enable <id>`. See
-[consumer-tooling.md](consumer-tooling.md).
+are repository-level Atlas template surfaces, not opt-in enablement. Adopt those capabilities with
+`pnpm atlas enable <id> --dry-run` then `pnpm atlas enable <id>` (available since 1.2.0; the
+`upgrades` capability since 1.4.0). See [consumer-tooling.md](consumer-tooling.md).
 
 ---
 

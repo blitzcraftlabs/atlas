@@ -1,5 +1,11 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Questions and help
+    url: https://github.com/blitzcraftlabs/atlas/discussions/categories/q-a
+    about: Ask how to do something with Atlas. Bugs and feature requests go in issues.
+  - name: Ideas and show and tell
+    url: https://github.com/blitzcraftlabs/atlas/discussions
+    about: Share what you built with Atlas or discuss an idea before opening a feature issue.
   - name: Report a security vulnerability
     url: https://github.com/blitzcraftlabs/atlas/security/advisories/new
     about: Do not report security vulnerabilities in a public GitHub issue.
