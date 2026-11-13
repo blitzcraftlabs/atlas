@@ -14,6 +14,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   upstream ingest URL was built from request query parameters, so unauthenticated callers could make
   the server POST to arbitrary HTTPS hosts. The route now only forwards to the configured Sentry
   DSNs, rejects other projects, and caps envelope size at 2 MiB.
+- Remove the remaining High-severity `extract-zip` and `tmp` audit exceptions. `@lhci/cli` moves
+  from `^0.14.0` to `^0.16.0` in `apps/web` and `apps/reference` (Lighthouse 13 and
+  `@puppeteer/browsers` 3, which replaces `extract-zip` with `modern-tar` and drops `tmp`), and the
+  unused root `@turbo/gen` devDependency (the other `tmp@0.0.33` path, via `node-plop` → `inquirer`)
+  is removed. `pnpm audit` High findings drop from 6 to 1; the remaining one is the separately
+  tracked zod 3 exception.
 
 ## [1.3.3] - 2026-11-07
 
