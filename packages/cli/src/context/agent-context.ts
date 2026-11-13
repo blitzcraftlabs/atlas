@@ -363,7 +363,7 @@ export function buildAgentContextReport(context: AtlasCliContext): AgentContextR
         command: "atlas context",
         jsonSupported: true,
       },
-      generators: listGeneratorDefinitions(),
+      generators: listGeneratorDefinitions(context.project),
       doctor: {
         command: "atlas doctor",
         jsonSupported: true,

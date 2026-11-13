@@ -395,6 +395,17 @@ Both generators:
 - Support `--dry-run` and `--json` using the shared CLI output model
 - Emit repository-relative paths and `followUpActions` for automation
 
+### `atlas generate <custom-id> <name>`
+
+Run a consumer-defined generator declared in `atlas.config.json#generators` (see
+[custom generators](atlas-contract.md#custom-generators-schema-v1-optional)). Supports `--dry-run`
+and `--json`; existing files are conflicts (exit `7`).
+
+```bash
+pnpm atlas generate data-table billing-history --dry-run
+pnpm atlas generate data-table billing-history
+```
+
 ### `atlas generate list`
 
 List supported generators with machine-readable metadata for humans and coding agents.
@@ -404,9 +415,9 @@ atlas generate list
 atlas generate list --json
 ```
 
-JSON output includes generator `id`, `description`, `usage`, `targetOwnership`, `conflictBehavior`,
-required/optional arguments, and supported flags. The same inventory is also available via
-`atlas context --json` → `commands.generators`.
+JSON output includes generator `id`, `source` (`builtin` or `custom`), `description`, `usage`,
+`targetOwnership`, `conflictBehavior`, required/optional arguments, and supported flags. The same
+inventory is also available via `atlas context --json` → `commands.generators`.
 
 ### `atlas context`
 
