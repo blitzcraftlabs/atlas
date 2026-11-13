@@ -22,4 +22,9 @@ else
   echo "⚠️  Warning: Corepack not available. Attempting to use system pnpm..."
 fi
 
+# Git exports GIT_DIR (and friends) to hooks. Tests that create fixture repositories must not
+# inherit them, or their git commands write into this repository instead.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY \
+  GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_NAMESPACE GIT_PREFIX
+
 pnpm typecheck && pnpm test
