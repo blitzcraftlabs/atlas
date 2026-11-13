@@ -153,6 +153,38 @@ describe("distribution upgrade proof", () => {
     );
   });
 
+  it("rewinds the consumer template manifest synced paths to the previous release", () => {
+    const fixture = createTwoVersionFixture();
+    try {
+      const manifestPath = path.join(
+        fixture.consumerRoot,
+        "templates",
+        "app-infrastructure.manifest.json"
+      );
+      mkdirSync(path.dirname(manifestPath), { recursive: true });
+      writeFileSync(
+        manifestPath,
+        `${JSON.stringify({
+          schemaVersion: 1,
+          syncedPaths: [...fixture.currentManifest.syncedPaths, "src/lib/added-after-previous.ts"],
+          independentPaths: { "src/config/server.ts": "kept" },
+        })}\n`
+      );
+
+      materializePreviousProductionConsumer({
+        consumerRoot: fixture.consumerRoot,
+        previousSnapshotRoot: fixture.previousSnapshotRoot,
+        currentSnapshotRoot: fixture.currentSnapshotRoot,
+      });
+
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+      assert.deepEqual(manifest.syncedPaths, [...fixture.previousManifest.syncedPaths].sort());
+      assert.deepEqual(manifest.independentPaths, { "src/config/server.ts": "kept" });
+    } finally {
+      rmSync(fixture.root, { recursive: true, force: true });
+    }
+  });
+
   it("does not silently retain target-version Atlas-owned state", () => {
     const fixture = createTwoVersionFixture();
     try {

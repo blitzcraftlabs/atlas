@@ -1,5 +1,41 @@
 # @blitzcraftlabs/atlas
 
+## 1.4.0
+
+### Minor Changes
+
+- 3ce35c5: Custom generators: declare consumer-owned generators in `atlas.config.json#generators`
+  (template directory, target path, placeholders such as `{{pascal}}`) and run them with
+  `atlas generate <id> <name>`. `atlas generate list` and `atlas context` include them with
+  `source: "custom"`.
+- 2ef283f: Add `atlas enable upgrades`: a weekly consumer workflow that runs `pnpm atlas upgrade`,
+  opens one pull request when a newer Atlas release applies cleanly, and opens one issue listing
+  blocking files when it needs a human.
+- bacb4be: `atlas upgrade` now upgrades consumers that are several published releases behind. It
+  plans a path through every npm-published release (honoring recovery bridges such as 1.2.2 →
+  1.3.1), runs each hop with that release's CLI, and stops at the first hop that needs attention.
+  `--dry-run --json` reports the full path in `result.hops`.
+- ef03f67: Add a generic OpenID Connect provider beside Google. Set `AUTH_OIDC_ISSUER` and
+  `AUTH_OIDC_CLIENT_ID` (plus an optional secret and scopes) to sign in through
+  `/api/auth/oidc/start` with any OIDC issuer. Endpoints come from the validated discovery document,
+  and switching providers no longer requires editing synced auth files.
+- 6abce86: `atlas upgrade` now runs a three-way merge for synced files you modified that Atlas also
+  changed. Plans report `autoMerge: clean | conflict`. With `--merge`, clean merges are applied and
+  no longer block the upgrade; conflicting merges are written to `.atlas/merge/<path>.merge` for
+  review. Security-critical paths are never merged automatically.
+
+### Patch Changes
+
+- cb42d11: Migrate application test mocking from MSW v1 to MSW v2 (`http` handlers returning
+  `HttpResponse`). Application Jest projects now run in `jest-fixed-jsdom` and compile MSW's
+  ESM-only dependencies with `babel-jest`. A new test proves the shared MSW server intercepts
+  requests. Consumers with custom MSW handlers should replace `rest.*((req, res, ctx) => …)` with
+  `http.*(({ request, params }) => …)`.
+- 96d6a1b: Fix: after `atlas upgrade`, `platform.baseline` now records the Atlas-shipped checksum
+  for each application synced path instead of the consumer's file. Previously a customization of a
+  file that Atlas did not change in that release became the new "unchanged" baseline, so the next
+  release that changed the file overwrote it.
+
 ## 1.3.4
 
 ### Patch Changes
