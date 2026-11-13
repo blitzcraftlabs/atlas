@@ -1,5 +1,31 @@
 # @blitzcraftlabs/atlas
 
+## 1.3.4
+
+### Patch Changes
+
+- 1e739c3: Release pipeline: GitHub Releases are created as drafts and made public only after the
+  npm package is published and verified, and a daily consistency check fails on any public Release
+  without a matching npm version.
+- 167e8b4: Security: upgrade the starter's `@lhci/cli` from `^0.14.0` to `^0.16.0` (Lighthouse 13,
+  `@puppeteer/browsers` 3), which removes `extract-zip@2.0.1` (GHSA-jmr9-qjv8-65gv,
+  GHSA-7pqw-9j4j-h8q3) and `tmp@0.1.0` (GHSA-ph9p-34f9-6g65, GHSA-52f5-9888-hmc6) from the
+  dependency tree. The consumer `security-audit` capability template no longer ships exceptions for
+  those advisories. Existing consumers that enable the security audit while still on `@lhci/cli`
+  0.14 should bump `@lhci/cli` to `^0.16.0` in `apps/web/package.json`; `@lhci/cli` 0.16 requires
+  Node.js
+
+  > = 22.19.
+
+- eac827b: Security: the starter's Sentry tunnel route (`apps/web/src/app/monitoring/route.ts`) no
+  longer builds its upstream URL from the `o`/`r` query parameters, which allowed unauthenticated
+  requests to make the server POST to arbitrary HTTPS hosts (SSRF / open proxy). The tunnel now
+  forwards only to the ingest endpoints of the app's configured DSNs (`NEXT_PUBLIC_SENTRY_DSN`,
+  `SENTRY_DSN`), rejects other projects with 403, caps envelopes at 2 MiB (logging a
+  `sentry_tunnel_envelope_rejected` warning when it drops one), and forwards bodies as bytes.
+  Projects generated from earlier Atlas versions own this route and should copy the fix
+  (`src/app/monitoring/route.ts` and `src/config/sentry-tunnel.ts`).
+
 ## 1.3.3
 
 ### Patch Changes
