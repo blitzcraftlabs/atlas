@@ -1,5 +1,4 @@
 import { formatInitResult } from "../commands/init";
-import { ENABLE_CLI_RELEASE_PLACEHOLDER } from "../init/cli-release";
 import { buildConsumerPackageManifest, buildConsumerReadme } from "../init/consumer-files";
 
 describe("generated consumer workspace files", () => {
@@ -93,12 +92,12 @@ describe("generated consumer workspace files", () => {
     expect(readme).toContain("pnpm atlas enable list --json");
     expect(readme).not.toContain("pnpm dlx @blitzcraftlabs/atlas@1.1.0 doctor");
     expect(readme).not.toContain("pnpm dlx @blitzcraftlabs/atlas@99.0.0 enable");
-    expect(readme).not.toContain(`@${ENABLE_CLI_RELEASE_PLACEHOLDER} enable list`);
+    expect(readme).not.toContain("<next-cli-release>");
     expect(lines).toContain("pnpm atlas doctor");
     expect(lines).toContain("pnpm atlas context --json");
     expect(lines).toContain("pnpm atlas enable list --json");
     expect(lines).not.toContain("pnpm dlx @blitzcraftlabs/atlas@99.0.0");
-    expect(lines).not.toContain(`@${ENABLE_CLI_RELEASE_PLACEHOLDER} enable list`);
+    expect(lines).not.toContain("@<next-cli-release> enable list");
   });
 
   it("points enable at the upcoming-release placeholder when the running CLI lacks enable", () => {
@@ -122,7 +121,7 @@ describe("generated consumer workspace files", () => {
     expect(readme).toContain("pnpm atlas doctor");
     expect(readme).toContain("pnpm atlas context --json");
     expect(readme).toContain(enableCommand);
-    expect(readme).not.toContain(`@${ENABLE_CLI_RELEASE_PLACEHOLDER} enable list`);
+    expect(readme).not.toContain("<next-cli-release>");
     expect(readme).not.toContain("pnpm dlx @blitzcraftlabs/atlas@1.1.0 enable");
     expect(lines).toContain("pnpm atlas doctor");
     expect(lines).toContain("pnpm atlas context --json");
