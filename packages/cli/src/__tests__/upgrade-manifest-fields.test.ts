@@ -12,9 +12,14 @@ import { applyPackageUpdates } from "../upgrade/package-apply";
 import { planPackageUpdates } from "../upgrade/package-plan";
 import {
   collectManagedManifestFields,
+  readManifestFieldValue,
   type ReleaseManifestFields,
 } from "../upgrade/manifest-fields";
-import { MANAGED_MANIFEST_RELATIVE_PATHS, parseManifestField } from "../upgrade/manifest-ownership";
+import {
+  ATLAS_MANAGED_MANIFEST_FIELDS,
+  MANAGED_MANIFEST_RELATIVE_PATHS,
+  parseManifestField,
+} from "../upgrade/manifest-ownership";
 import { runUpgrade } from "../upgrade/run";
 import { readCheckoutAtlasVersion } from "../version";
 
@@ -247,6 +252,67 @@ describe("manifest field evolution", () => {
       targetVersion: "1.3.2",
     });
     expect(item(planned, "dependencies.next").conflict).toBe(true);
+  });
+
+  it("adopts zod when the consumer still has the value Atlas shipped before owning it", () => {
+    writeWebManifest(repoRoot, {
+      name: "@atlas/web",
+      version: "1.3.3",
+      dependencies: { zod: "3.24.1" },
+    });
+    const planned = planWeb({
+      repoRoot,
+      baseline: "1.3.3",
+      source: manifestFields({ "apps/web/package.json": { version: "1.3.3" } }),
+      target: manifestFields({
+        "apps/web/package.json": { version: "1.4.0", "dependencies.zod": "4.6.7" },
+      }),
+      targetVersion: "1.4.0",
+    });
+    const zod = item(planned, "dependencies.zod");
+    expect(zod.conflict).toBe(false);
+    expect(zod).toMatchObject({ action: "package-upgrade", targetVersion: "4.6.7" });
+    applyPackageUpdates({ repoRoot, baselineAtlasVersion: "1.3.3", items: planned });
+    const updated = JSON.parse(readFileSync(path.join(repoRoot, "apps/web/package.json"), "utf8"));
+    expect(updated.dependencies.zod).toBe("4.6.7");
+  });
+
+  it("requires manual review when the consumer changed zod before Atlas owned it", () => {
+    writeWebManifest(repoRoot, {
+      name: "@atlas/web",
+      version: "1.3.3",
+      dependencies: { zod: "3.25.76" },
+    });
+    const planned = planWeb({
+      repoRoot,
+      baseline: "1.3.3",
+      source: manifestFields({ "apps/web/package.json": { version: "1.3.3" } }),
+      target: manifestFields({
+        "apps/web/package.json": { version: "1.4.0", "dependencies.zod": "4.6.7" },
+      }),
+      targetVersion: "1.4.0",
+    });
+    expect(item(planned, "dependencies.zod").conflict).toBe(true);
+  });
+
+  it("does not treat the pre-ownership zod value as Atlas-shipped once the source release owns zod", () => {
+    writeWebManifest(repoRoot, {
+      name: "@atlas/web",
+      version: "1.4.0",
+      dependencies: { zod: "3.24.1" },
+    });
+    const planned = planWeb({
+      repoRoot,
+      baseline: "1.4.0",
+      source: manifestFields({
+        "apps/web/package.json": { version: "1.4.0", "dependencies.zod": "4.6.7" },
+      }),
+      target: manifestFields({
+        "apps/web/package.json": { version: "1.4.1", "dependencies.zod": "4.6.8" },
+      }),
+      targetVersion: "1.4.1",
+    });
+    expect(item(planned, "dependencies.zod").conflict).toBe(true);
   });
 
   it("removes an Atlas-owned dependency the target release drops when the consumer did not change it", () => {
@@ -785,6 +851,34 @@ function bumpOwnedPackageVersions(
   ) as ReleaseManifestFields;
 }
 
+/**
+ * A Version PR records every field the current code owns. Fields that became Atlas-owned after the
+ * prior release are absent from its snapshot, so add them with the current checkout's values.
+ */
+function withFieldsOwnedByCurrentCheckout(
+  fields: ReleaseManifestFields,
+  checkoutRoot: string
+): ReleaseManifestFields {
+  const next = structuredClone(fields);
+  for (const { relativePath, field } of ATLAS_MANAGED_MANIFEST_FIELDS) {
+    const fieldSet = (next[relativePath] ??= { owned: [], values: {} });
+    if (fieldSet.owned.includes(field)) {
+      continue;
+    }
+    const manifest = JSON.parse(readFileSync(path.join(checkoutRoot, relativePath), "utf8"));
+    const value = readManifestFieldValue(manifest, field);
+    fieldSet.owned = [...fieldSet.owned, field].sort((left, right) => left.localeCompare(right));
+    if (value !== undefined) {
+      fieldSet.values = Object.fromEntries(
+        Object.entries({ ...fieldSet.values, [field]: value }).sort(([left], [right]) =>
+          left.localeCompare(right)
+        )
+      );
+    }
+  }
+  return next;
+}
+
 function writeManagedManifestsFromFields(repoRoot: string, fields: ReleaseManifestFields): void {
   for (const relativePath of MANAGED_MANIFEST_RELATIVE_PATHS) {
     const fieldSet = fields[relativePath];
@@ -881,10 +975,13 @@ describe("version PR current checkout regression", () => {
     const priorVersion = "1.3.1";
     const nextVersion = "1.3.2";
     const priorSnapshot = readProductionSnapshot(PRODUCTION_ASSETS, priorVersion);
-    const nextManifestFields = bumpOwnedPackageVersions(
-      requireSnapshotManifestFields(priorSnapshot, priorVersion),
-      priorVersion,
-      nextVersion
+    const nextManifestFields = withFieldsOwnedByCurrentCheckout(
+      bumpOwnedPackageVersions(
+        requireSnapshotManifestFields(priorSnapshot, priorVersion),
+        priorVersion,
+        nextVersion
+      ),
+      REPO_ROOT
     );
 
     writeManagedManifestsFromFields(repoRoot, nextManifestFields);

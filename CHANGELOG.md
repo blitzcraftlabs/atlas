@@ -10,6 +10,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Security
 
+- Migrate to Zod 4.6.7 and `@hookform/resolvers` 5, fixing GHSA-mrhx-c7xc-m3w5 (High). `zod` and
+  `@hookform/resolvers` become Atlas-owned manifest fields so `atlas upgrade` moves them with the
+  synced code; projects on the previously shipped values are upgraded automatically.
 - Fix SSRF in the Sentry tunnel route (`/monitoring`) in `apps/web` and `apps/reference`: the
   upstream ingest URL was built from request query parameters, so unauthenticated callers could make
   the server POST to arbitrary HTTPS hosts. The route now only forwards to the configured Sentry

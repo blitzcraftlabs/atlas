@@ -11,6 +11,7 @@ import {
   parseManifestField,
   PARTIAL_UPGRADE_1_3_1_BASELINE,
   PARTIAL_UPGRADE_1_3_1_STALE_VALUES,
+  PRE_OWNERSHIP_SHIPPED_VALUES,
 } from "./manifest-ownership";
 
 import type { ManifestFieldChange, UpgradePlanItem } from "./types";
@@ -362,6 +363,19 @@ export function classifyManifestField(options: {
         kind: "update",
         operation: "set",
         message: `${label} is absent in the source release. Atlas will add ${targetValue}.`,
+      };
+    }
+
+    if (
+      consumerValue !== undefined &&
+      targetValue !== undefined &&
+      !options.sourceOwned &&
+      (PRE_OWNERSHIP_SHIPPED_VALUES[fieldId]?.includes(consumerValue) ?? false)
+    ) {
+      return {
+        kind: "update",
+        operation: "set",
+        message: `${label} is ${consumerValue}, the value Atlas shipped before it owned this field. Atlas will adopt ${targetValue}.`,
       };
     }
 

@@ -241,15 +241,14 @@ function EditUserForm({ userId }: { userId: string }) {
   );
 }
 
-function RoleField<T extends FieldValues & { role: "user" | "admin" }>({
-  control,
-}: {
-  control: Control<T>;
-}) {
+function RoleField<
+  TInput extends FieldValues & { role?: "user" | "admin" },
+  TOutput extends FieldValues = TInput,
+>({ control }: { control: Control<TInput, unknown, TOutput> }) {
   return (
     <FormField
       control={control}
-      name={"role" as Path<T>}
+      name={"role" as Path<TInput>}
       render={({ field }) => (
         <FormItem>
           <FormLabel>Role</FormLabel>
@@ -271,7 +270,7 @@ function RoleField<T extends FieldValues & { role: "user" | "admin" }>({
   );
 }
 
-function UserFormShell<T extends FieldValues>({
+function UserFormShell<TInput extends FieldValues, TOutput extends FieldValues = TInput>({
   title,
   description,
   cardTitle,
@@ -296,8 +295,9 @@ function UserFormShell<T extends FieldValues>({
   submitLabel: string;
   cancelHref: string;
   serverError: string | null;
-  form: UseFormReturn<T>;
-  onSubmit: SubmitHandler<T>;
+  /** Field values use the schema input type; submitted data is the parsed output type. */
+  form: UseFormReturn<TInput, unknown, TOutput>;
+  onSubmit: SubmitHandler<TOutput>;
   children: React.ReactNode;
 }) {
   return (

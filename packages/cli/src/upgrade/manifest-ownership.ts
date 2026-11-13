@@ -43,10 +43,30 @@ export const ATLAS_MANAGED_MANIFEST_FIELDS: readonly ManagedManifestField[] = [
   { relativePath: "packages/config/package.json", field: "version" },
   { relativePath: "packages/config/package.json", field: "devDependencies.eslint-config-next" },
   { relativePath: "packages/consent/package.json", field: "version" },
+  { relativePath: "apps/web/package.json", field: "dependencies.zod" },
   { relativePath: "packages/ui/package.json", field: "version" },
+  { relativePath: "packages/ui/package.json", field: "dependencies.zod" },
+  { relativePath: "packages/ui/package.json", field: "dependencies.@hookform/resolvers" },
   { relativePath: "packages/project/package.json", field: "version" },
+  { relativePath: "packages/project/package.json", field: "dependencies.zod" },
   { relativePath: "packages/cli/package.json", field: "version" },
+  { relativePath: "packages/cli/package.json", field: "dependencies.zod" },
 ];
+
+/**
+ * Values Atlas shipped for a field before it became Atlas-owned. Releases before ownership do not
+ * record these fields, so the upgrader cannot tell an untouched starter value from a consumer edit.
+ * A consumer value listed here is the value Atlas itself shipped and is adopted on upgrade; any
+ * other value stays a consumer modification. Every release from 0.1.0 through 1.3.3 shipped zod
+ * 3.24.1 and @hookform/resolvers ^4.1.3 (zod 4 code in synced Atlas paths needs both moved).
+ */
+export const PRE_OWNERSHIP_SHIPPED_VALUES: Readonly<Record<string, readonly string[]>> = {
+  "apps/web/package.json#dependencies.zod": ["3.24.1"],
+  "packages/ui/package.json#dependencies.zod": ["3.24.1"],
+  "packages/ui/package.json#dependencies.@hookform/resolvers": ["^4.1.3"],
+  "packages/project/package.json#dependencies.zod": ["3.24.1"],
+  "packages/cli/package.json#dependencies.zod": ["3.24.1"],
+};
 
 /** Root version written by `atlas init` before the first upgrade adopts the Atlas release version. */
 export const GENERATED_CONSUMER_ROOT_VERSION = "0.1.0";

@@ -5,7 +5,7 @@
       "advisory": "GHSA-jmr9-qjv8-65gv",
       "packageName": "extract-zip",
       "owner": "@atlas-maintainers",
-      "reason": "extract-zip@2.0.1 is pulled only through @lhci/cli → lighthouse → puppeteer-core → @puppeteer/browsers. The registry reports no patched extract-zip line (patched_versions <0.0.0). Upgrading Lighthouse/Puppeteer enough to drop 2.0.1 is a tooling major-line change outside this security-hardening scope.",
+      "reason": "extract-zip@2.0.1 is pulled only through @lhci/cli \u2192 lighthouse \u2192 puppeteer-core \u2192 @puppeteer/browsers. The registry reports no patched extract-zip line (patched_versions <0.0.0). Upgrading Lighthouse/Puppeteer enough to drop 2.0.1 is a tooling major-line change outside this security-hardening scope.",
       "compensatingControl": "Dev-only LHCI/Lighthouse path; Atlas never extracts attacker-supplied zip archives. Browser downloads are vendor artifacts on trusted CI/developer hosts, not a production request handler or client bundle.",
       "reviewedOn": "2026-08-29",
       "expiresOn": "2026-11-27"
@@ -14,7 +14,7 @@
       "advisory": "GHSA-7pqw-9j4j-h8q3",
       "packageName": "extract-zip",
       "owner": "@atlas-maintainers",
-      "reason": "Same extract-zip@2.0.1 transitive path as GHSA-jmr9-qjv8-65gv (@lhci/cli → lighthouse → puppeteer-core → @puppeteer/browsers). The registry still reports no patched extract-zip line (patched_versions <0.0.0).",
+      "reason": "Same extract-zip@2.0.1 transitive path as GHSA-jmr9-qjv8-65gv (@lhci/cli \u2192 lighthouse \u2192 puppeteer-core \u2192 @puppeteer/browsers). The registry still reports no patched extract-zip line (patched_versions <0.0.0).",
       "compensatingControl": "Dev-only LHCI/Lighthouse path; Atlas never extracts attacker-supplied zip archives or symlink entries from untrusted sources. Browser downloads are vendor artifacts on trusted CI/developer hosts, not a production request handler or client bundle.",
       "reviewedOn": "2026-09-10",
       "expiresOn": "2026-11-27"
@@ -23,7 +23,7 @@
       "advisory": "GHSA-ph9p-34f9-6g65",
       "packageName": "tmp",
       "owner": "@atlas-maintainers",
-      "reason": "Vulnerable tmp@0.0.33 / tmp@0.1.0 come from @turbo/gen → inquirer/external-editor and from @lhci/cli. The patched line is tmp >=0.2.6, which changes the callback API those inquirer 6/7 stacks still call. A tmp 0.2 override is not a compatible refresh for this PR.",
+      "reason": "Vulnerable tmp@0.0.33 / tmp@0.1.0 come from @turbo/gen \u2192 inquirer/external-editor and from @lhci/cli. The patched line is tmp >=0.2.6, which changes the callback API those inquirer 6/7 stacks still call. A tmp 0.2 override is not a compatible refresh for this PR.",
       "compensatingControl": "CLI/dev-only. The GHSA requires untrusted prefix/postfix/dir options; Atlas and these tools use library-controlled temp names, not attacker-supplied tmp options. Not present in production application bundles or server runtime.",
       "reviewedOn": "2026-08-29",
       "expiresOn": "2026-11-27"
@@ -32,9 +32,9 @@
       "advisory": "GHSA-mrhx-c7xc-m3w5",
       "packageName": "zod",
       "owner": "@atlas-maintainers",
-      "reason": "zod has no patched 3.x line; the fix is zod >=4.6.6. Atlas depends directly on zod 3.24.1 in apps/web, apps/reference, packages/ui, packages/project and the published @blitzcraftlabs/atlas CLI, and transitively through @lhci/cli → lighthouse → puppeteer-core → chromium-bidi (dev-only). Moving to zod 4 also requires @hookform/resolvers 5 and API migration across synced consumer templates, so it is tracked as a dedicated follow-up migration rather than folded into this remediation. The eslint-plugin-react-hooks zod 4 path is overridden to a patched 4.6.x release.",
-      "compensatingControl": "The only untrusted input validated with an array schema is POST /api/telemetry/web-vitals. Both apps now enforce the 100KB body limit on bytes actually read (not only the optional Content-Length header) and reject metrics arrays longer than 50 before schema validation, so per-element issue accumulation is bounded. Env, contract and CLI schemas parse repository-controlled input; form schemas run in the submitting user's own browser.",
-      "reviewedOn": "2026-11-07",
+      "reason": "Atlas workspaces now depend on zod 4.6.7 (patched). The only remaining zod 3 copy is zod@3.23.8 at apps__reference > @lhci/cli@0.14 > lighthouse > puppeteer-core > chromium-bidi, a dev-only Lighthouse CI path with no patched zod 3 release. blitzcraftlabs/atlas#105 upgrades @lhci/cli to 0.16, which removes that path; drop this exception when it merges.",
+      "compensatingControl": "Dev-only: chromium-bidi validates CDP/BiDi protocol messages between Lighthouse and a local Chromium during `perf:lhci`. It never parses user input and is not part of any production bundle.",
+      "reviewedOn": "2026-11-13",
       "expiresOn": "2026-12-07"
     }
   ]
