@@ -19,6 +19,7 @@ export interface ParsedCli {
   positionals: string[];
   targetVersion?: string;
   allowDirty: boolean;
+  merge: boolean;
   skipValidation: boolean;
   releasesDir?: string;
 }
@@ -37,6 +38,7 @@ const GLOBAL_FLAGS = new Set([
   "--env",
   "--to",
   "--allow-dirty",
+  "--merge",
   "--skip-validation",
   "--releases-dir",
 ]);
@@ -89,6 +91,7 @@ function createEmptyParsedCli(): ParsedCli {
     version: false,
     positionals: [],
     allowDirty: false,
+    merge: false,
     skipValidation: false,
   };
 }
@@ -141,6 +144,9 @@ function parseGlobalArgs(argv: string[]): ParsedCli {
         break;
       case "--allow-dirty":
         parsed.allowDirty = true;
+        break;
+      case "--merge":
+        parsed.merge = true;
         break;
       case "--skip-validation":
         parsed.skipValidation = true;
@@ -216,6 +222,9 @@ function parseGlobalFlagsOnly(argv: string[]): { flags: ParsedCli; remainder: st
       case "--allow-dirty":
         flags.allowDirty = true;
         break;
+      case "--merge":
+        flags.merge = true;
+        break;
       case "--skip-validation":
         flags.skipValidation = true;
         break;
@@ -243,6 +252,7 @@ function mergeParsedFlags(target: ParsedCli, source: ParsedCli): void {
   target.env = source.env;
   target.targetVersion = target.targetVersion ?? source.targetVersion;
   target.allowDirty = target.allowDirty || source.allowDirty;
+  target.merge = target.merge || source.merge;
   target.skipValidation = target.skipValidation || source.skipValidation;
   target.releasesDir = target.releasesDir ?? source.releasesDir;
 }

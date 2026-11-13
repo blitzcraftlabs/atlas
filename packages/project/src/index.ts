@@ -41,9 +41,11 @@ export {
 export { joinRepoPath, normalizeRepoRelativePath } from "./paths";
 export {
   atlasProjectContractSchema,
+  type CustomGeneratorDefinition,
   parseAtlasProjectContract,
   type PlatformBaseline,
   type RawAtlasProjectContract,
+  RESERVED_GENERATOR_IDS,
   type ResolvedAtlasProject,
   resolvedAtlasProjectSchema,
 } from "./schema";

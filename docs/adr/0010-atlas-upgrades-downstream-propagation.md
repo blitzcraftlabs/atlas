@@ -192,7 +192,7 @@ Rejected in ADR-0009 — poor fit for forkable, editable source.
 
 - `platform.baseline.syncedPathChecksums` can be large — acceptable for machine metadata
 - Baseline must be refreshed after upgrades (`atlas upgrade`)
-- Full three-way merge still manual until `atlas upgrade` provides release snapshots
+- Three-way merge is opt-in (`atlas upgrade --merge`); conflicting merges remain manual
 
 ## References
 

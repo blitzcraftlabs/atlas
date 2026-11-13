@@ -43,6 +43,7 @@ import {
   loadReleaseSnapshot,
   toReleasePathManifest,
 } from "./release-snapshot";
+import { resolveThreeWayMerges, writeMergeSidecars } from "./three-way-merge";
 import { compareAtlasVersions } from "./version-compare";
 import { writeRootPackageVersion } from "./version-identity";
 import { assertCleanWorktreeForMutation } from "./worktree";
@@ -64,6 +65,8 @@ export interface RunUpgradeOptions {
   allowDirty?: boolean;
   releasesDir?: string;
   skipValidation?: boolean;
+  /** Apply clean three-way merges for consumer-modified synced paths; write conflict sidecars. */
+  merge?: boolean;
   migrationRegistry?: AtlasMigrationRegistry;
   /**
    * Install dependencies after Atlas-managed edits. Fixture `--releases-dir` runs skip this
@@ -452,6 +455,25 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
   });
 
   const items = mergePlanItems(templatePlan.items, [...packageItems, ...cliPinPlan.items]);
+  const isRepositoryItem = (item: UpgradePlanItem) => item.pathScope === "repository";
+  const mergeResolution = resolveThreeWayMerges({
+    items,
+    apply: options.merge ?? false,
+    sourceVersion,
+    targetVersion,
+    sourceContent: (item) =>
+      isRepositoryItem(item)
+        ? sourceRelease.snapshot.repositorySyncedPaths?.[item.relativePath]
+        : sourceRelease.snapshot.syncedPaths[item.relativePath],
+    targetContent: (item) =>
+      isRepositoryItem(item)
+        ? targetRelease.snapshot.repositorySyncedPaths?.[item.relativePath]
+        : targetRelease.snapshot.syncedPaths[item.relativePath],
+    consumerContent: (item) =>
+      isRepositoryItem(item)
+        ? consumerRepositoryFiles[item.relativePath]
+        : consumerFiles[item.relativePath],
+  });
   const summary = summarizeMergedItems(items);
   const conflicts = items.filter((item) => item.conflict);
   const hasBlockingConflicts = conflicts.length > 0;
@@ -472,6 +494,16 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
       messages.push(
         "Upgrade plan contains blocking conflicts. No filesystem mutations were applied."
       );
+      if (options.merge && mode === "apply") {
+        for (const sidecar of writeMergeSidecars({
+          repoRoot: options.repoRoot,
+          applicationRoot,
+          items,
+          conflictContents: mergeResolution.conflictContents,
+        })) {
+          messages.push(`Wrote conflict-marked merge for review: ${sidecar}`);
+        }
+      }
     } else if (hasUnresolvedPackageWork) {
       messages.push(
         "Upgrade plan contains unresolved required package updates. No filesystem mutations were applied."
@@ -578,6 +610,7 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
       ...targetRelease.snapshot.syncedPaths,
       ...(targetRelease.snapshot.repositorySyncedPaths ?? {}),
     },
+    contentOverrides: mergeResolution.contentOverrides,
     dryRun: false,
   });
 
@@ -756,6 +789,7 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
     atlasVersion: targetVersion,
     contractSchemaVersion: targetRelease.manifest.contractSchemaVersion,
     manifest: targetManifestSubset,
+    targetSyncedContents: targetRelease.snapshot.syncedPaths,
     repositorySyncedPathChecksums: selectRepositorySyncedPathChecksumsForUpgrade({
       repoRoot: options.repoRoot,
       targetRepositorySyncedPaths,
