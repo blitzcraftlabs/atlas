@@ -1,5 +1,14 @@
 # @atlas/project
 
+## 1.4.0
+
+### Minor Changes
+
+- 3ce35c5: Custom generators: declare consumer-owned generators in `atlas.config.json#generators`
+  (template directory, target path, placeholders such as `{{pascal}}`) and run them with
+  `atlas generate <id> <name>`. `atlas generate list` and `atlas context` include them with
+  `source: "custom"`.
+
 ## 1.3.4
 
 ## 1.3.3

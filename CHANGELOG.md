@@ -8,6 +8,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-13
+
+### Changed
+
+- Custom generators: declare consumer-owned generators in `atlas.config.json#generators` (template
+  directory, target path, placeholders such as `{{pascal}}`) and run them with
+  `atlas generate <id> <name>`. `atlas generate list` and `atlas context` include them with
+  `source: "custom"`.
+- Add `atlas enable upgrades`: a weekly consumer workflow that runs `pnpm atlas upgrade`, opens one
+  pull request when a newer Atlas release applies cleanly, and opens one issue listing blocking
+  files when it needs a human.
+- `atlas upgrade` now upgrades consumers that are several published releases behind. It plans a path
+  through every npm-published release (honoring recovery bridges such as 1.2.2 → 1.3.1), runs each
+  hop with that release's CLI, and stops at the first hop that needs attention. `--dry-run --json`
+  reports the full path in `result.hops`.
+- Add a generic OpenID Connect provider beside Google. Set `AUTH_OIDC_ISSUER` and
+  `AUTH_OIDC_CLIENT_ID` (plus an optional secret and scopes) to sign in through
+  `/api/auth/oidc/start` with any OIDC issuer. Endpoints come from the validated discovery document,
+  and switching providers no longer requires editing synced auth files.
+- Migrate application test mocking from MSW v1 to MSW v2 (`http` handlers returning `HttpResponse`).
+  Application Jest projects now run in `jest-fixed-jsdom` and compile MSW's ESM-only dependencies
+  with `babel-jest`. A new test proves the shared MSW server intercepts requests. Consumers with
+  custom MSW handlers should replace `rest.*((req, res, ctx) => …)` with
+  `http.*(({ request, params }) => …)`.
+
+### Fixed
+
+- Fix: after `atlas upgrade`, `platform.baseline` now records the Atlas-shipped checksum for each
+  application synced path instead of the consumer's file. Previously a customization of a file that
+  Atlas did not change in that release became the new "unchanged" baseline, so the next release that
+  changed the file overwrote it.
+
+### Security
+
+- `atlas upgrade` now runs a three-way merge for synced files you modified that Atlas also changed.
+  Plans report `autoMerge: clean | conflict`. With `--merge`, clean merges are applied and no longer
+  block the upgrade; conflicting merges are written to `.atlas/merge/<path>.merge` for review.
+  Security-critical paths are never merged automatically.
+
 ## [1.3.4] - 2026-11-13
 
 ### Changed
@@ -265,7 +304,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Enterprise frontend platform monorepo: `@atlas/web` template app, `@atlas/ui`, `@atlas/config`,
   `@atlas/consent`, conventions, and documentation.
 
-[Unreleased]: https://github.com/blitzcraftlabs/atlas/compare/v1.3.4...HEAD
+[Unreleased]: https://github.com/blitzcraftlabs/atlas/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/blitzcraftlabs/atlas/compare/v1.3.4...v1.4.0
 [1.3.4]: https://github.com/blitzcraftlabs/atlas/compare/v1.3.3...v1.3.4
 [1.3.3]: https://github.com/blitzcraftlabs/atlas/compare/v1.3.2...v1.3.3
 [1.3.2]: https://github.com/blitzcraftlabs/atlas/compare/v1.3.1...v1.3.2
