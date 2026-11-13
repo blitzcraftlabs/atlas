@@ -243,6 +243,7 @@ async function runUpgradeCliCommand(
     targetVersion: parsed.targetVersion,
     dryRun: parsed.dryRun,
     allowDirty: parsed.allowDirty,
+    merge: parsed.merge,
     skipValidation: parsed.skipValidation,
     releasesDir: parsed.releasesDir,
     json: parsed.json,

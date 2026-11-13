@@ -508,6 +508,7 @@ describe("atlas enable", () => {
       const remaining: { id: string; path: string }[] = [
         { id: "security", path: "scripts/security-audit.mjs" },
         { id: "updates", path: ".github/dependabot.yml" },
+        { id: "upgrades", path: ".github/workflows/atlas-upgrade.yml" },
         { id: "hooks", path: ".husky/pre-commit" },
         { id: "cursor", path: ".cursor/rules/atlas-core.mdc" },
         { id: "docker", path: "docker-compose.yml" },

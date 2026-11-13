@@ -238,6 +238,32 @@ function checkReleaseWorkflow() {
     }
   }
 
+  const finalizeJob = extractNamedJob(workflow, "finalize-release");
+  if (!finalizeJob) {
+    fail("release.yml is missing the finalize-release job (draft Releases go public after npm)");
+  } else {
+    if (!/needs:[\s\S]*\bnpm-publish\b/.test(finalizeJob)) {
+      fail("finalize-release job must depend on npm-publish");
+    }
+    if (!/needs\.npm-publish\.result\s*==\s*'success'/.test(finalizeJob)) {
+      fail("finalize-release job must run only after npm-publish succeeds");
+    }
+    if (!/finalize-atlas-release\.mjs/.test(finalizeJob)) {
+      fail("finalize-release job must invoke finalize-atlas-release.mjs");
+    }
+    if (/id-token:\s*write/.test(finalizeJob)) {
+      fail("finalize-release job must not request npm provenance permissions");
+    }
+  }
+
+  const publisherSource = readFileSync(
+    path.join(process.cwd(), "scripts/lib/release-consistency.mjs"),
+    "utf8"
+  );
+  if (!/"--draft"/.test(publisherSource)) {
+    fail("GitHub Releases must be created as drafts until npm publication is verified");
+  }
+
   const npmPublishJob = extractNamedJob(workflow, "npm-publish");
   if (!npmPublishJob) {
     fail("release.yml is missing the npm-publish job");
