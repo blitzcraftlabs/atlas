@@ -536,16 +536,22 @@ repairs the unpublished `1.2.3` snapshot also accepts published `1.2.2` consumer
 GitHub-only release, so it does not take that recovery slot. Repository `releases/0.1.0` and
 `releases/0.2.0` are rehearsal-only and are not public support.
 
-| Option              | Description                                                                  |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `--to <version>`    | Exact Atlas release. Omit to use the latest stable published release         |
-| `--dry-run`         | Full planning path without filesystem mutations                              |
-| `--json`            | Machine-readable plan and result on stdout                                   |
-| `--allow-dirty`     | Allow mutations when the Git worktree has uncommitted changes                |
-| `--skip-validation` | Skip post-upgrade `atlas doctor` (fixture/CI only)                           |
-| `--releases-dir`    | Explicit fixture/maintainer snapshot directory; not used for normal upgrades |
+| Option              | Description                                                                     |
+| ------------------- | ------------------------------------------------------------------------------- |
+| `--to <version>`    | Exact Atlas release. Omit to use the latest stable published release            |
+| `--dry-run`         | Full planning path without filesystem mutations                                 |
+| `--json`            | Machine-readable plan and result on stdout                                      |
+| `--allow-dirty`     | Allow mutations when the Git worktree has uncommitted changes                   |
+| `--merge`           | Apply clean three-way merges for modified synced files; write conflict sidecars |
+| `--skip-validation` | Skip post-upgrade `atlas doctor` (fixture/CI only)                              |
+| `--releases-dir`    | Explicit fixture/maintainer snapshot directory; not used for normal upgrades    |
 
-Blocking conflicts refuse all mutations. `platform.baseline` advances only after a fully successful
+Blocking conflicts refuse all mutations. For a non-security synced file you modified that Atlas also
+changed, the plan runs a three-way merge (base = source release, ours = your file, theirs = target
+release; uses `git merge-file`) and reports `autoMerge: clean | conflict`. With `--merge`, clean
+merges are applied (`action: merge`) and no longer block; conflicting merges stay blocking and are
+written to `.atlas/merge/<path>.merge` with labelled conflict markers for review. Security-critical
+paths are never merged automatically. `platform.baseline` advances only after a fully successful
 apply and `atlas doctor` validation. See [upgrades](upgrades.md) and
 [release snapshots](../../releases/README.md).
 

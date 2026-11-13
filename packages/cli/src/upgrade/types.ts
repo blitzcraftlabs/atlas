@@ -23,7 +23,8 @@ export type UpgradeActionKind =
   | "package-upgrade"
   | "skip"
   | "manual-review"
-  | "migration";
+  | "migration"
+  | "merge";
 
 export type UpgradeBaselineStatus = "unchanged" | "modified" | "unknown";
 
@@ -65,6 +66,9 @@ export interface UpgradePlanItem {
   baselineStatus?: UpgradeBaselineStatus;
   pathScope?: UpgradePathScope;
   manifestChange?: ManifestFieldChange;
+  /** Outcome of a three-way merge for consumer-modified `merge-required` synced paths. */
+  autoMerge?: "clean" | "conflict" | "unavailable";
+  mergeConflicts?: number;
 }
 
 export interface UpgradePlanSummary {
