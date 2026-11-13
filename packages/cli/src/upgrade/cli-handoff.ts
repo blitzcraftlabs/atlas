@@ -77,6 +77,8 @@ export function buildUpgradeHandoffArgs(request: UpgradeHandoffRequest): string[
 export interface UpgradeHandoffResult {
   exitCode: number;
   signal: NodeJS.Signals | null;
+  /** Captured stdout when `stdio` is `"pipe"`. */
+  stdout?: string;
 }
 
 export function executeUpgradeHandoff(options: {
@@ -98,11 +100,12 @@ export function executeUpgradeHandoff(options: {
     stdio: options.stdio ?? "inherit",
   });
 
+  const stdout = typeof result.stdout === "string" ? result.stdout : undefined;
   if (result.error) {
-    return { exitCode: 1, signal: result.signal };
+    return { exitCode: 1, signal: result.signal, stdout };
   }
   if (result.signal) {
-    return { exitCode: 1, signal: result.signal };
+    return { exitCode: 1, signal: result.signal, stdout };
   }
-  return { exitCode: result.status ?? 1, signal: null };
+  return { exitCode: result.status ?? 1, signal: null, stdout };
 }

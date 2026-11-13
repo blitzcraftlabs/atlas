@@ -155,4 +155,15 @@ export interface UpgradeRunResult {
   latestStable?: string;
   targetResolution?: "latest" | "explicit";
   dependencyInstall?: "passed" | "failed" | "skipped" | "not-run";
+  /** Ordered published releases walked to reach the target when more than one hop is needed. */
+  hops?: string[];
+  /** Per-hop outcome for multi-release upgrades. */
+  hopResults?: UpgradeHopResult[];
+}
+
+export interface UpgradeHopResult {
+  targetVersion: string;
+  exitCode: number;
+  /** Child CLI JSON result when run with --json. */
+  result?: unknown;
 }
