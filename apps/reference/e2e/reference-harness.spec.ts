@@ -12,6 +12,10 @@ const SEEDED_USER_EMAILS = [
   "extra.user@atlas.local",
 ] as const;
 
+// Budget for a client-side navigation or API request whose route `next dev` may still have to
+// compile on first use.
+const CLIENT_NAVIGATION_TIMEOUT_MS = 30_000;
+
 async function signInAsAdminWithSuccess(page: Page) {
   await setReferenceSession(page, "reference-admin", "success");
 }
@@ -58,7 +62,14 @@ async function openMobileNavAndGoTo(page: Page, linkName: string) {
     await expect(dialog).toBeVisible();
   }).toPass();
 
-  await dialog.getByRole("link", { name: linkName }).click();
+  const link = dialog.getByRole("link", { name: linkName });
+  const href = await link.getAttribute("href");
+  expect(href, `mobile nav link "${linkName}" must have an href`).toBeTruthy();
+  await link.click();
+  // A client-side Link navigation returns before the route renders. Under `next dev`, the first
+  // visit compiles the route on demand, which took 14.6s on a loaded CI runner (WebKit, 2 workers)
+  // and outlasted the 5s assertion timeout. Wait for the URL like page.goto would, then assert.
+  await page.waitForURL((url) => url.pathname === href, { timeout: CLIENT_NAVIGATION_TIMEOUT_MS });
 }
 
 test.describe("Reference harness", () => {
@@ -344,7 +355,11 @@ test.describe("API recovery, flags, and consent traffic", () => {
     await expect(page.getByRole("heading", { name: "Failed to load users" })).toBeVisible();
 
     await page.getByRole("button", { name: "Try again" }).click();
-    await expect(page.getByRole("cell", { name: "Reference User", exact: true })).toBeVisible();
+    // The first GET was fulfilled above, so the retry is the real /api/users handler's first
+    // request and `next dev` compiles it on demand; in CI (WebKit) it was still pending after 5s.
+    await expect(page.getByRole("cell", { name: "Reference User", exact: true })).toBeVisible({
+      timeout: CLIENT_NAVIGATION_TIMEOUT_MS,
+    });
   });
 
   test("API 500 surfaces a user-visible error on users list", async ({ page }) => {

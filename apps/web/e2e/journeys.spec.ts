@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
 
+// Budget for a client-side navigation whose route `next dev` may still have to compile.
+const CLIENT_NAVIGATION_TIMEOUT_MS = 30_000;
+
 test.describe("Critical web journeys", () => {
   test("data example empty, error, and retry states", async ({ page }) => {
     await page.goto("/examples/data?mode=empty");
@@ -27,6 +30,9 @@ test.describe("Critical web journeys", () => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto("/examples");
     await page.getByRole("link", { name: "Forms" }).click();
+    // Client-side navigation returns before the route renders; under `next dev` the first visit
+    // compiles the route on demand, which can outlast the 5s assertion timeout on a loaded runner.
+    await page.waitForURL("**/examples/form", { timeout: CLIENT_NAVIGATION_TIMEOUT_MS });
     await expect(page.getByRole("heading", { name: /Forms & validation/i })).toBeVisible();
   });
 });
