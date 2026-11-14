@@ -12,7 +12,8 @@ const SEEDED_USER_EMAILS = [
   "extra.user@atlas.local",
 ] as const;
 
-// Budget for a client-side navigation whose route `next dev` may still have to compile.
+// Budget for a client-side navigation or API request whose route `next dev` may still have to
+// compile on first use.
 const CLIENT_NAVIGATION_TIMEOUT_MS = 30_000;
 
 async function signInAsAdminWithSuccess(page: Page) {
@@ -354,7 +355,11 @@ test.describe("API recovery, flags, and consent traffic", () => {
     await expect(page.getByRole("heading", { name: "Failed to load users" })).toBeVisible();
 
     await page.getByRole("button", { name: "Try again" }).click();
-    await expect(page.getByRole("cell", { name: "Reference User", exact: true })).toBeVisible();
+    // The first GET was fulfilled above, so the retry is the real /api/users handler's first
+    // request and `next dev` compiles it on demand; in CI (WebKit) it was still pending after 5s.
+    await expect(page.getByRole("cell", { name: "Reference User", exact: true })).toBeVisible({
+      timeout: CLIENT_NAVIGATION_TIMEOUT_MS,
+    });
   });
 
   test("API 500 surfaces a user-visible error on users list", async ({ page }) => {
