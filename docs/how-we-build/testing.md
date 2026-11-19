@@ -288,12 +288,17 @@ pnpm test:risk-coverage
 ```
 
 That command collects Jest coverage for `@atlas/web`, `@atlas/ui`, and the Atlas CLI
-(`@blitzcraftlabs/atlas`), then evaluates [`coverage-policy.json`](../../coverage-policy.json) via
-`scripts/coverage-policy.mjs`. Missing reports, missing subsystems, zero matched files, or a metric
-below the floor fail the gate. CI collects the full aggregate once (`pnpm test:coverage:all`)
-without also running `pnpm test`, then runs the same policy evaluator. Architecture boundary tests
-run via `pnpm test:boundaries`. `pnpm test:risk-coverage` remains the local command that regenerates
-the high-risk reports and evaluates floors.
+(`@blitzcraftlabs/atlas`), plus Node test-runner LCOV for root `scripts/**`, then evaluates
+[`coverage-policy.json`](../../coverage-policy.json) via `scripts/coverage-policy.mjs`. Missing
+reports, missing subsystems, zero matched files, or a metric below the floor fail the gate.
+
+LCOV only lists files that some test loaded, so an untested script would silently drop out of its
+subsystem. LCOV subsystems therefore list `requireFiles`; a required file absent from the report
+fails the gate. LCOV has no statements metric, so LCOV subsystems set only lines, branches, and
+functions. CI collects the full aggregate once (`pnpm test:coverage:all`) without also running
+`pnpm test`, then runs the same policy evaluator. Architecture boundary tests run via
+`pnpm test:boundaries`. `pnpm test:risk-coverage` remains the local command that regenerates the
+high-risk reports and evaluates floors.
 
 Suggested floors (do not lower them just to make CI green):
 
@@ -304,9 +309,11 @@ Suggested floors (do not lower them just to make CI green):
 | CLI upgrade              | ≥ 86%            | ≥ 71%    | ≥ 88%     |
 | CLI template sync        | ≥ 80%            | ≥ 61%    | ≥ 86%     |
 | CLI init / bootstrap     | ≥ 83%            | ≥ 60%    | ≥ 91%     |
+| Release scripts (lines)  | ≥ 79%            | ≥ 70%    | ≥ 82%     |
 
-CLI floors are ratchets: each sits about one point below measured coverage when it was added. Raise
-a floor in the same PR that raises its coverage; never lower one to make CI green.
+CLI and release-script floors are ratchets: each sits about one point below measured coverage when
+it was added. Raise a floor in the same PR that raises its coverage; never lower one to make CI
+green.
 
 Update floors in `coverage-policy.json` only with an explicit residual-risk note in
 [testing-risk-matrix.md](testing-risk-matrix.md).

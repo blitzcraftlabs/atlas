@@ -1,5 +1,6 @@
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import {
   ATLAS_TAG_PATTERN,
@@ -14,6 +15,8 @@ import {
 import { extractChangelogSection } from "./extract-changelog-section.mjs";
 
 const errors = [];
+/** Repository being validated; set by collectGovernanceErrors. */
+let repoRoot = process.cwd();
 
 function fail(message) {
   errors.push(message);
@@ -27,27 +30,27 @@ function stripYamlComments(content) {
 }
 
 function assertFileExists(relativePath, label) {
-  if (!existsSync(path.join(process.cwd(), relativePath))) {
+  if (!existsSync(path.join(repoRoot, relativePath))) {
     fail(`Missing ${label}: ${relativePath}`);
   }
 }
 
 function assertLicenseIsApache(relativePath) {
-  const pkg = readJson(relativePath);
+  const pkg = readJson(relativePath, repoRoot);
   if (pkg.license !== "Apache-2.0") {
     fail(`${relativePath} license must be "Apache-2.0" (found: ${pkg.license ?? "none"})`);
   }
 }
 
 function assertPrivateWorkspace(relativePath) {
-  const pkg = readJson(relativePath);
+  const pkg = readJson(relativePath, repoRoot);
   if (pkg.private !== true) {
     fail(`${relativePath} must remain private (not an independent npm product)`);
   }
 }
 
 function assertPublicCliPackage(relativePath) {
-  const pkg = readJson(relativePath);
+  const pkg = readJson(relativePath, repoRoot);
   if (pkg.private === true) {
     fail(`${relativePath} must not be private; it is Atlas's public npm CLI package`);
   }
@@ -63,7 +66,7 @@ function assertPublicCliPackage(relativePath) {
 }
 
 function checkLicenseFile() {
-  const licensePath = path.join(process.cwd(), "LICENSE");
+  const licensePath = path.join(repoRoot, "LICENSE");
   if (!existsSync(licensePath)) {
     fail("Missing root LICENSE file");
     return;
@@ -76,8 +79,8 @@ function checkLicenseFile() {
 }
 
 function checkVersionAlignment() {
-  const rootVersion = readRootVersion();
-  const workspaces = readWorkspaceVersions();
+  const rootVersion = readRootVersion(repoRoot);
+  const workspaces = readWorkspaceVersions(repoRoot);
 
   for (const pkg of workspaces) {
     if (pkg.version !== rootVersion) {
@@ -85,15 +88,15 @@ function checkVersionAlignment() {
     }
   }
 
-  const governanceDoc = readFileSync(path.join(process.cwd(), CANONICAL_GOVERNANCE_DOC), "utf8");
+  const governanceDoc = readFileSync(path.join(repoRoot, CANONICAL_GOVERNANCE_DOC), "utf8");
   if (!governanceDoc.includes("## Atlas 1.0 stability contract")) {
     fail(`${CANONICAL_GOVERNANCE_DOC} must define the Atlas 1.0 stability contract`);
   }
 }
 
 function checkChangelog() {
-  const version = readRootVersion();
-  const changelogPath = path.join(process.cwd(), "CHANGELOG.md");
+  const version = readRootVersion(repoRoot);
+  const changelogPath = path.join(repoRoot, "CHANGELOG.md");
 
   if (!existsSync(changelogPath)) {
     fail("Missing root CHANGELOG.md");
@@ -107,7 +110,7 @@ function checkChangelog() {
 }
 
 function checkPackageScripts() {
-  const pkg = readJson("package.json");
+  const pkg = readJson("package.json", repoRoot);
   if (pkg.scripts?.["docs:check"]?.includes("validate-governance")) {
     fail("docs:check must remain the documentation link checker");
   }
@@ -135,7 +138,7 @@ function extractNamedJob(workflow, jobId) {
 }
 
 function checkReleaseWorkflow() {
-  const workflowPath = path.join(process.cwd(), ".github/workflows/release.yml");
+  const workflowPath = path.join(repoRoot, ".github/workflows/release.yml");
   if (!existsSync(workflowPath)) {
     fail("Missing .github/workflows/release.yml");
     return;
@@ -257,7 +260,7 @@ function checkReleaseWorkflow() {
   }
 
   const publisherSource = readFileSync(
-    path.join(process.cwd(), "scripts/lib/release-consistency.mjs"),
+    path.join(repoRoot, "scripts/lib/release-consistency.mjs"),
     "utf8"
   );
   if (!/"--draft"/.test(publisherSource)) {
@@ -372,7 +375,7 @@ function checkReleaseWorkflow() {
     }
   }
 
-  const publisherPath = path.join(process.cwd(), "scripts/release-publication.mjs");
+  const publisherPath = path.join(repoRoot, "scripts/release-publication.mjs");
   if (!existsSync(publisherPath)) {
     fail("Missing scripts/release-publication.mjs");
   } else {
@@ -382,8 +385,8 @@ function checkReleaseWorkflow() {
     }
   }
 
-  const npmPublisherPath = path.join(process.cwd(), "scripts/publish-npm-package.mjs");
-  const npmPublicationLibPath = path.join(process.cwd(), "scripts/lib/npm-publication.mjs");
+  const npmPublisherPath = path.join(repoRoot, "scripts/publish-npm-package.mjs");
+  const npmPublicationLibPath = path.join(repoRoot, "scripts/lib/npm-publication.mjs");
   if (!existsSync(npmPublisherPath) || !existsSync(npmPublicationLibPath)) {
     fail("Missing npm publication scripts");
   } else {
@@ -455,7 +458,7 @@ function checkReleaseWorkflow() {
 }
 
 function checkGovernanceDocLinks() {
-  const readme = readFileSync(path.join(process.cwd(), "README.md"), "utf8");
+  const readme = readFileSync(path.join(repoRoot, "README.md"), "utf8");
   if (!readme.includes("releases-and-governance.md")) {
     fail("README.md must link to docs/how-we-build/releases-and-governance.md");
   }
@@ -465,7 +468,7 @@ function checkOssWording() {
   const files = ["README.md", "docs/public/faq.md", "docs/how-we-build/releases-and-governance.md"];
 
   for (const file of files) {
-    const content = readFileSync(path.join(process.cwd(), file), "utf8");
+    const content = readFileSync(path.join(repoRoot, file), "utf8");
     if (/Atlas is open source(?!\s+under)/i.test(content)) {
       fail(`${file} must not claim unqualified open-source status; qualify with Apache-2.0`);
     }
@@ -473,7 +476,7 @@ function checkOssWording() {
 }
 
 function checkChangesetAccessPolicy() {
-  const changesetConfig = readJson(".changeset/config.json");
+  const changesetConfig = readJson(".changeset/config.json", repoRoot);
   if (changesetConfig.access !== "public") {
     fail(
       '.changeset/config.json access must be "public" so @blitzcraftlabs/atlas cannot publish as restricted'
@@ -482,7 +485,7 @@ function checkChangesetAccessPolicy() {
 
   for (const pkg of ATLAS_WORKSPACE_PACKAGES) {
     const manifestPath = path.join(pkg.relativePath, "package.json");
-    const manifest = readJson(manifestPath);
+    const manifest = readJson(manifestPath, repoRoot);
     if (pkg.name === PUBLIC_CLI_PACKAGE_NAME) {
       continue;
     }
@@ -495,7 +498,7 @@ function checkChangesetAccessPolicy() {
   }
 
   const changesetsPublish = path.join(
-    process.cwd(),
+    repoRoot,
     "node_modules/@changesets/cli/dist/changesets-cli.cjs.js"
   );
   if (!existsSync(changesetsPublish)) {
@@ -524,8 +527,13 @@ function checkTagFormat(tag) {
   }
 }
 
-function main() {
-  console.log("Validating Atlas governance…");
+/**
+ * Run every governance check against `root` and return the failures (empty when compliant).
+ * Exported so tests can run the checks in-process against a fixture copy of the repository.
+ */
+export function collectGovernanceErrors(root = process.cwd()) {
+  errors.length = 0;
+  repoRoot = root;
 
   assertFileExists("LICENSE", "license file");
   assertFileExists(CANONICAL_GOVERNANCE_DOC, "governance documentation");
@@ -556,18 +564,27 @@ function main() {
   checkOssWording();
   checkChangesetAccessPolicy();
 
-  const version = readRootVersion();
+  const version = readRootVersion(repoRoot);
   checkTagFormat(`v${version}`);
 
-  if (errors.length > 0) {
+  return [...errors];
+}
+
+function main() {
+  console.log("Validating Atlas governance…");
+
+  const failures = collectGovernanceErrors(process.cwd());
+  if (failures.length > 0) {
     console.error("Governance validation failed:\n");
-    for (const error of errors) {
+    for (const error of failures) {
       console.error(`  ✗ ${error}`);
     }
     process.exit(1);
   }
 
-  console.log(`✓ Atlas governance checks passed (version ${version})`);
+  console.log(`✓ Atlas governance checks passed (version ${readRootVersion(process.cwd())})`);
 }
 
-main();
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  main();
+}

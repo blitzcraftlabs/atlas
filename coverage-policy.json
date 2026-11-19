@@ -2,7 +2,8 @@
   "reports": [
     { "id": "web", "path": "apps/web/coverage/coverage-final.json" },
     { "id": "ui", "path": "packages/ui/coverage/coverage-final.json" },
-    { "id": "cli", "path": "packages/cli/coverage/coverage-final.json" }
+    { "id": "cli", "path": "packages/cli/coverage/coverage-final.json" },
+    { "id": "scripts", "path": "coverage/scripts/lcov.info", "format": "lcov" }
   ],
   "subsystems": [
     {
@@ -82,6 +83,41 @@
       ],
       "exclude": ["**/__tests__/**", "**/*.test.ts"],
       "thresholds": { "statements": 83, "lines": 83, "branches": 60, "functions": 91 }
+    },
+    {
+      "id": "scripts-release",
+      "report": "scripts",
+      "include": [
+        "scripts/publish-atlas-release.mjs",
+        "scripts/publish-npm-package.mjs",
+        "scripts/release-publication.mjs",
+        "scripts/finalize-atlas-release.mjs",
+        "scripts/consolidate-atlas-release.mjs",
+        "scripts/root-release-changelog.mjs",
+        "scripts/validate-governance.mjs",
+        "scripts/check-release-consistency.mjs",
+        "scripts/extract-changelog-section.mjs",
+        "scripts/lib/release-consistency.mjs",
+        "scripts/lib/release-github-state.mjs",
+        "scripts/lib/npm-publication.mjs",
+        "scripts/lib/npm-publish-dry-run.mjs"
+      ],
+      "requireFiles": [
+        "scripts/publish-atlas-release.mjs",
+        "scripts/publish-npm-package.mjs",
+        "scripts/release-publication.mjs",
+        "scripts/finalize-atlas-release.mjs",
+        "scripts/consolidate-atlas-release.mjs",
+        "scripts/root-release-changelog.mjs",
+        "scripts/validate-governance.mjs",
+        "scripts/check-release-consistency.mjs",
+        "scripts/extract-changelog-section.mjs",
+        "scripts/lib/release-consistency.mjs",
+        "scripts/lib/release-github-state.mjs",
+        "scripts/lib/npm-publication.mjs",
+        "scripts/lib/npm-publish-dry-run.mjs"
+      ],
+      "thresholds": { "lines": 79, "branches": 70, "functions": 82 }
     }
   ]
 }

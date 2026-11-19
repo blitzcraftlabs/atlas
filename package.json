@@ -23,7 +23,7 @@
     "test:scripts": "node scripts/run-script-tests.mjs",
     "test:coverage:all": "turbo run test:coverage && node scripts/collect-scripts-coverage.mjs",
     "test:boundaries": "node --test apps/web/eslint.boundaries.test.mjs apps/reference/eslint.boundaries.test.mjs",
-    "test:risk-coverage": "pnpm --filter @atlas/web test:coverage && pnpm --filter @atlas/ui test:coverage && pnpm --filter @blitzcraftlabs/atlas test:coverage && node scripts/coverage-policy.mjs",
+    "test:risk-coverage": "pnpm --filter @atlas/web test:coverage && pnpm --filter @atlas/ui test:coverage && pnpm --filter @blitzcraftlabs/atlas test:coverage && node scripts/collect-scripts-coverage.mjs && node scripts/coverage-policy.mjs",
     "docs:check": "node scripts/check-doc-links.mjs",
     "docs:check:external": "node scripts/check-doc-links.mjs --external",
     "test:watch": "turbo run test:watch",
