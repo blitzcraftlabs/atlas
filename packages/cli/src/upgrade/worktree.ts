@@ -21,10 +21,10 @@ export function detectWorktreeStatus(repoRoot: string): WorktreeStatus {
     };
   }
 
-  const lines = result.stdout
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
+  // Porcelain v1 lines are "XY <path>": a fixed two-character status, a space, then the path.
+  // The status can start with a space (" M file" = unstaged change), so lines must not be trimmed
+  // before slicing off the status, or the first characters of the path are lost.
+  const lines = result.stdout.split("\n").filter((line) => line.trim().length > 0);
 
   const changedPaths = lines.map((line) => line.slice(3).trim());
 
