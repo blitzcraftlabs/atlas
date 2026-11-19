@@ -29,6 +29,7 @@ import {
 import { validateUpgradeSourceBaseline } from "./baseline-validation";
 import { applyConsumerCliPin, planConsumerCliPin } from "./consumer-cli-manifest";
 import { installConsumerDependencies } from "./dependency-install";
+import { planLegacyCliPinReview } from "./legacy-cli-pins";
 import { applyPackageUpdates, hasUnresolvedRequiredPackageWork } from "./package-apply";
 import { planPackageUpdates } from "./package-plan";
 import { planUpgrade } from "./plan";
@@ -454,7 +455,17 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
     targetVersion,
   });
 
-  const items = mergePlanItems(templatePlan.items, [...packageItems, ...cliPinPlan.items]);
+  const legacyCliPins = planLegacyCliPinReview({
+    repoRoot: options.repoRoot,
+    sourceVersion,
+    targetVersion,
+  });
+
+  const items = mergePlanItems(templatePlan.items, [
+    ...packageItems,
+    ...cliPinPlan.items,
+    ...legacyCliPins.items,
+  ]);
   const isRepositoryItem = (item: UpgradePlanItem) => item.pathScope === "repository";
   const mergeResolution = resolveThreeWayMerges({
     items,
@@ -484,7 +495,7 @@ export async function runUpgrade(options: RunUpgradeOptions): Promise<UpgradeRun
 
   let status: UpgradeRunStatus = "planned";
   const appliedPaths: string[] = [];
-  const messages: string[] = [];
+  const messages: string[] = [...legacyCliPins.messages];
   let baselineUpdated = false;
   let validation: UpgradeValidationReport = { doctor: "skipped", apiGen: "skipped" };
 

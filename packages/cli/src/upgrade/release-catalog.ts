@@ -339,7 +339,12 @@ export function formatUnsupportedSourceReleaseMessage(
   sourceVersion: string,
   catalog: ProductionReleaseCatalog
 ): string {
-  return `Unsupported source Atlas release ${sourceVersion}. ${CLI_PACKAGE_NAME} supports adjacent published releases among: ${formatSupportedVersions(catalog)}. Rehearsal snapshots ${REHEARSAL_ONLY_ATLAS_VERSIONS.join("/")} are not production support.`;
+  const base = `Unsupported source Atlas release ${sourceVersion}. ${CLI_PACKAGE_NAME} supports adjacent published releases among: ${formatSupportedVersions(catalog)}. Rehearsal snapshots ${REHEARSAL_ONLY_ATLAS_VERSIONS.join("/")} are not production support.`;
+  const oldestSupported = sortAtlasVersions(catalog.supportedVersions)[0];
+  if (!oldestSupported || compareAtlasVersions(sourceVersion, oldestSupported) >= 0) {
+    return base;
+  }
+  return `${base} Atlas ${sourceVersion} is more than one published release behind. With npm registry access, run \`pnpm dlx ${CLI_PACKAGE_NAME}@latest upgrade\` (or \`pnpm atlas upgrade\`) without --releases-dir: it runs each published release's CLI in order, starting with the next one after ${sourceVersion}. See "Supported upgrade promise" in docs/how-we-build/upgrades.md.`;
 }
 
 export function formatUnsupportedTargetReleaseMessage(

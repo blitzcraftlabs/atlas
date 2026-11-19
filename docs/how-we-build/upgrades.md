@@ -352,6 +352,28 @@ The canonical `v0.5.0` tag is the previous production baseline for the first pub
 `v1.0.0` is the first stable platform release. The first npm registry version is `1.0.1`. Do not
 publish `0.5.0` or `1.0.0` to npm, and do not retag `v1.0.0`.
 
+### Post-upgrade: consumer-owned CLI references
+
+Projects generated before Atlas 1.3.0 call the CLI through a pinned version written into files you
+own, for example `pnpm dlx @blitzcraftlabs/atlas@<version> doctor` in `.github/workflows/ci.yml`,
+`README.md`, `AGENTS.md` and `docs/how-we-build/*.md`. Upgrades pin `@blitzcraftlabs/atlas` as a
+root devDependency and add a `pnpm atlas` script, but they never rewrite consumer-owned files. The
+old pin keeps running the old CLI, which cannot parse `atlas.config.json` once the contract changes,
+so CI fails right after a clean upgrade.
+
+After upgrading:
+
+- [ ] Review the `manual-review` items for those files in the upgrade plan
+      (`atlas upgrade --dry-run` lists them; they do not block the upgrade).
+- [ ] Replace each `pnpm dlx @blitzcraftlabs/atlas@<version> <command>` with `pnpm atlas <command>`.
+- [ ] Run `pnpm atlas doctor`. The `cli-references` check reports any pin left behind:
+      `ATLAS_LEGACY_CLI_PIN` (warning) for docs, and `ATLAS_LEGACY_CLI_PIN_WORKFLOW` (error) for a
+      CI workflow that pins a CLI older than the project.
+
+A pin used on purpose for one upgrade step,
+`pnpm dlx @blitzcraftlabs/atlas@1.3.1 upgrade --to 1.3.1`, is not reported. Placeholders such as
+`@<version>` and `@latest` are ignored.
+
 ---
 
 ## `atlas upgrade` requirements checklist
@@ -385,6 +407,8 @@ Discovered during upgrade rehearsal — `atlas upgrade` implements:
 - [x] Explicit synced-path transitions (new / removed / ownership change)
 - [x] Advance root `package.json` version with `platform.baseline.atlasVersion` on success
 - [x] Machine-readable upgrade plan output for agents/CI
+- [x] Report consumer-owned CI workflows and docs that still pin an older CLI as non-blocking
+      `manual-review` items (Atlas never rewrites them)
 
 Registered production migrations are documented under `docs/migrations/`. When no structural
 migration is required for a release pair, the production registry remains empty and template sync

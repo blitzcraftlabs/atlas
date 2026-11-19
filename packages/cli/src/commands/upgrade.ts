@@ -14,6 +14,7 @@ import {
 } from "../upgrade/cli-handoff";
 import { repairStaleWorkspaceVersions } from "../upgrade/hop-normalize";
 import { discoverPublishedReleases, formatHopPath, planUpgradeHops } from "../upgrade/hop-plan";
+import { planLegacyCliPinReview } from "../upgrade/legacy-cli-pins";
 import {
   type CommandRunner,
   discoverLatestPublishedRelease,
@@ -424,6 +425,12 @@ function runMultiHopUpgrade(input: {
     hops,
     hopResults: [],
   };
+
+  // The hop CLIs plan only their own release; report consumer-owned CLI pins against the final target.
+  const legacyCliPins = planLegacyCliPinReview({ repoRoot, sourceVersion, targetVersion });
+  base.items.push(...legacyCliPins.items);
+  base.summary.manual += legacyCliPins.items.length;
+  base.messages.push(...legacyCliPins.messages);
 
   const knownAtlasVersions = [...input.published, sourceVersion];
   if (options.dryRun) {

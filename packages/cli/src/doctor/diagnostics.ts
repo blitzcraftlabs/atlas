@@ -33,6 +33,8 @@ export const DoctorDiagnosticCode = {
   UPGRADE_BASELINE_STALE_ENTRY: "ATLAS_UPGRADE_BASELINE_STALE_ENTRY",
   MANIFEST_ALIGNMENT_DRIFT: "ATLAS_MANIFEST_ALIGNMENT_DRIFT",
   MANIFEST_ALIGNMENT_EVIDENCE_INVALID: "ATLAS_MANIFEST_ALIGNMENT_EVIDENCE_INVALID",
+  LEGACY_CLI_PIN: "ATLAS_LEGACY_CLI_PIN",
+  LEGACY_CLI_PIN_WORKFLOW: "ATLAS_LEGACY_CLI_PIN_WORKFLOW",
 } as const;
 
 export type DoctorDiagnosticCodeType =
@@ -145,6 +147,18 @@ export const DOCTOR_DIAGNOSTIC_DEFINITIONS: Record<string, DiagnosticDefinition>
     severity: "error",
     suggestedFix:
       "Inspect the underlying tooling or configuration error. If the checkout is valid, report this as an Atlas CLI defect.",
+  },
+  [DoctorDiagnosticCode.LEGACY_CLI_PIN]: {
+    severity: "warning",
+    suggestedFix:
+      "Replace `pnpm dlx @blitzcraftlabs/atlas@<version> <command>` with `pnpm atlas <command>` so it runs the project's pinned CLI.",
+    documentation: "docs/how-we-build/upgrades.md",
+  },
+  [DoctorDiagnosticCode.LEGACY_CLI_PIN_WORKFLOW]: {
+    severity: "error",
+    suggestedFix:
+      "Replace `pnpm dlx @blitzcraftlabs/atlas@<version> <command>` in the workflow with `pnpm atlas <command>` so CI runs the project's pinned CLI.",
+    documentation: "docs/how-we-build/upgrades.md",
   },
   [DoctorDiagnosticCode.VERSION_MISMATCH]: {
     severity: "warning",

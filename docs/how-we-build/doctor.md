@@ -114,56 +114,59 @@ Warnings do **not** fail CI in v0.1.
 
 ## Initial check registry
 
-| Check ID                       | Owns / delegates                                          | Possible diagnostics                                                                     | Failure policy        |
-| ------------------------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------- |
-| `project-contract`             | `@atlas/project`                                          | `ATLAS_CONTRACT_*`                                                                       | error                 |
-| `workspace-structure`          | Doctor + manifests                                        | `ATLAS_WORKSPACE_*`                                                                      | error                 |
-| `architecture-boundaries`      | ESLint policy + Doctor ownership scan                     | `ATLAS_BOUNDARY_*`, `ATLAS_ARCHITECTURE_POLICY_*`, `ATLAS_DOCTOR_CHECK_EXECUTION_FAILED` | error                 |
-| `dependency-declarations`      | Doctor (configured application only)                      | `ATLAS_DEPENDENCY_UNDECLARED`                                                            | error                 |
-| `generated-openapi`            | openapi-typescript compare (read-only)                    | `ATLAS_GENERATED_OPENAPI_*`                                                              | error / skip          |
-| `template-infrastructure-sync` | Manifest compare (read-only)                              | `ATLAS_TEMPLATE_SYNC_*`                                                                  | error / skip          |
-| `upgrade-baseline`             | Contract `platform.baseline` metadata                     | `ATLAS_UPGRADE_BASELINE_*`                                                               | warning / fail / skip |
-| `atlas-version`                | CLI vs checkout version metadata                          | `ATLAS_VERSION_MISMATCH`, `ATLAS_ROOT_PACKAGE_METADATA_INVALID`                          | warning / error       |
-| `manifest-alignment`           | Installed release snapshot vs Atlas-owned manifest fields | `ATLAS_MANIFEST_ALIGNMENT_DRIFT`, `ATLAS_MANIFEST_ALIGNMENT_EVIDENCE_INVALID`            | error / skip          |
+| Check ID                       | Owns / delegates                                          | Possible diagnostics                                                                     | Failure policy         |
+| ------------------------------ | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------- |
+| `project-contract`             | `@atlas/project`                                          | `ATLAS_CONTRACT_*`                                                                       | error                  |
+| `workspace-structure`          | Doctor + manifests                                        | `ATLAS_WORKSPACE_*`                                                                      | error                  |
+| `architecture-boundaries`      | ESLint policy + Doctor ownership scan                     | `ATLAS_BOUNDARY_*`, `ATLAS_ARCHITECTURE_POLICY_*`, `ATLAS_DOCTOR_CHECK_EXECUTION_FAILED` | error                  |
+| `dependency-declarations`      | Doctor (configured application only)                      | `ATLAS_DEPENDENCY_UNDECLARED`                                                            | error                  |
+| `generated-openapi`            | openapi-typescript compare (read-only)                    | `ATLAS_GENERATED_OPENAPI_*`                                                              | error / skip           |
+| `template-infrastructure-sync` | Manifest compare (read-only)                              | `ATLAS_TEMPLATE_SYNC_*`                                                                  | error / skip           |
+| `upgrade-baseline`             | Contract `platform.baseline` metadata                     | `ATLAS_UPGRADE_BASELINE_*`                                                               | warning / fail / skip  |
+| `atlas-version`                | CLI vs checkout version metadata                          | `ATLAS_VERSION_MISMATCH`, `ATLAS_ROOT_PACKAGE_METADATA_INVALID`                          | warning / error        |
+| `manifest-alignment`           | Installed release snapshot vs Atlas-owned manifest fields | `ATLAS_MANIFEST_ALIGNMENT_DRIFT`, `ATLAS_MANIFEST_ALIGNMENT_EVIDENCE_INVALID`            | error / skip           |
+| `cli-references`               | Consumer-owned CI workflows and docs vs pinned CLI        | `ATLAS_LEGACY_CLI_PIN`, `ATLAS_LEGACY_CLI_PIN_WORKFLOW`                                  | warning / error / skip |
 
 ---
 
 ## Diagnostic codes
 
-| Code                                           | Severity | Suggested remediation                                                  |
-| ---------------------------------------------- | -------- | ---------------------------------------------------------------------- |
-| `ATLAS_CONTRACT_MISSING`                       | error    | Create `atlas.config.json` or run `atlas init`                         |
-| `ATLAS_CONTRACT_INVALID`                       | error    | Fix contract validation/structure via `@atlas/project`                 |
-| `ATLAS_CONTRACT_UNSUPPORTED`                   | error    | Use a supported contract `schemaVersion`                               |
-| `ATLAS_BOUNDARY_PRIVATE_IMPORT`                | error    | Import from public package entry points such as `@atlas/ui`            |
-| `ATLAS_BOUNDARY_DIRECT_ENV`                    | error    | Use `getServerConfig()` / `useConfig()`                                |
-| `ATLAS_BOUNDARY_RAW_NETWORK`                   | error    | Use `@/lib/api` instead of raw `fetch()`                               |
-| `ATLAS_BOUNDARY_REFERENCE_IMPORT`              | error    | Do not import reference/example modules from product features          |
-| `ATLAS_BOUNDARY_CROSS_FEATURE_IMPORT`          | error    | Extract shared logic to `src/lib/`                                     |
-| `ATLAS_BOUNDARY_ANALYTICS_VENDOR`              | error    | Use `@/lib/analytics` adapter                                          |
-| `ATLAS_ARCHITECTURE_POLICY_MISSING`            | error    | Restore application ESLint config and architecture policy files        |
-| `ATLAS_ARCHITECTURE_POLICY_UNSUPPORTED_ROOT`   | error    | Move product features under `<application.root>/src` or extend tooling |
-| `ATLAS_DEPENDENCY_UNDECLARED`                  | error    | Declare imported packages in the owning workspace `package.json`       |
-| `ATLAS_GENERATED_OPENAPI_STALE`                | error    | Run `pnpm api:gen` and commit both generated schemas                   |
-| `ATLAS_GENERATED_OPENAPI_INVALID`              | error    | Fix the OpenAPI source or generator error, then rerun Doctor           |
-| `ATLAS_TEMPLATE_SYNC_DRIFT`                    | error    | Run `pnpm template:sync` or document divergence in the manifest        |
-| `ATLAS_TEMPLATE_SYNC_CANONICAL_MISSING`        | error    | Restore missing canonical starter path or update manifest syncedPaths  |
-| `ATLAS_TEMPLATE_SYNC_STRUCTURE`                | error    | Restore required module or update manifest ownership entries           |
-| `ATLAS_TEMPLATE_SYNC_MANIFEST_INVALID`         | error    | Fix `templates/app-infrastructure.manifest.json`                       |
-| `ATLAS_UPGRADE_BASELINE_MISSING`               | warning  | Record `platform.baseline` via `atlas init` or upgrade helpers         |
-| `ATLAS_UPGRADE_BASELINE_STALE`                 | warning  | Complete supported upgrade and refresh baseline metadata               |
-| `ATLAS_UPGRADE_BASELINE_INCOMPLETE`            | error    | Re-capture baseline after restoring all manifest syncedPaths           |
-| `ATLAS_UPGRADE_BASELINE_CHECKSUM_INVALID`      | error    | Fix malformed checksum values or re-run baseline capture               |
-| `ATLAS_UPGRADE_BASELINE_MANIFEST_INCOMPATIBLE` | warning  | Refresh baseline after manifest schema migration                       |
-| `ATLAS_UPGRADE_BASELINE_STALE_ENTRY`           | warning  | Remove stale baseline entries or re-capture after manifest changes     |
-| `ATLAS_VERSION_MISMATCH`                       | warning  | Align CLI/checkout Atlas snapshot versions                             |
-| `ATLAS_ROOT_PACKAGE_METADATA_INVALID`          | error    | Restore valid root `package.json` version metadata                     |
-| `ATLAS_WORKSPACE_CONFIG_MISSING`               | error    | Restore `pnpm-workspace.yaml` with configured workspace roots          |
-| `ATLAS_WORKSPACE_PACKAGE_MANIFEST_MISSING`     | error    | Add missing workspace `package.json`                                   |
-| `ATLAS_WORKSPACE_NOT_INCLUDED`                 | error    | Include configured roots in `pnpm-workspace.yaml`                      |
-| `ATLAS_DOCTOR_CHECK_EXECUTION_FAILED`          | error    | Inspect tooling/config errors or report an Atlas CLI defect            |
-| `ATLAS_MANIFEST_ALIGNMENT_DRIFT`               | error    | Run `pnpm atlas upgrade` so Atlas-owned manifest fields match baseline |
-| `ATLAS_MANIFEST_ALIGNMENT_EVIDENCE_INVALID`    | error    | Reinstall the Atlas CLI so local release evidence can be read          |
+| Code                                           | Severity | Suggested remediation                                                                    |
+| ---------------------------------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| `ATLAS_CONTRACT_MISSING`                       | error    | Create `atlas.config.json` or run `atlas init`                                           |
+| `ATLAS_CONTRACT_INVALID`                       | error    | Fix contract validation/structure via `@atlas/project`                                   |
+| `ATLAS_CONTRACT_UNSUPPORTED`                   | error    | Use a supported contract `schemaVersion`                                                 |
+| `ATLAS_BOUNDARY_PRIVATE_IMPORT`                | error    | Import from public package entry points such as `@atlas/ui`                              |
+| `ATLAS_BOUNDARY_DIRECT_ENV`                    | error    | Use `getServerConfig()` / `useConfig()`                                                  |
+| `ATLAS_BOUNDARY_RAW_NETWORK`                   | error    | Use `@/lib/api` instead of raw `fetch()`                                                 |
+| `ATLAS_BOUNDARY_REFERENCE_IMPORT`              | error    | Do not import reference/example modules from product features                            |
+| `ATLAS_BOUNDARY_CROSS_FEATURE_IMPORT`          | error    | Extract shared logic to `src/lib/`                                                       |
+| `ATLAS_BOUNDARY_ANALYTICS_VENDOR`              | error    | Use `@/lib/analytics` adapter                                                            |
+| `ATLAS_ARCHITECTURE_POLICY_MISSING`            | error    | Restore application ESLint config and architecture policy files                          |
+| `ATLAS_ARCHITECTURE_POLICY_UNSUPPORTED_ROOT`   | error    | Move product features under `<application.root>/src` or extend tooling                   |
+| `ATLAS_DEPENDENCY_UNDECLARED`                  | error    | Declare imported packages in the owning workspace `package.json`                         |
+| `ATLAS_GENERATED_OPENAPI_STALE`                | error    | Run `pnpm api:gen` and commit both generated schemas                                     |
+| `ATLAS_GENERATED_OPENAPI_INVALID`              | error    | Fix the OpenAPI source or generator error, then rerun Doctor                             |
+| `ATLAS_TEMPLATE_SYNC_DRIFT`                    | error    | Run `pnpm template:sync` or document divergence in the manifest                          |
+| `ATLAS_TEMPLATE_SYNC_CANONICAL_MISSING`        | error    | Restore missing canonical starter path or update manifest syncedPaths                    |
+| `ATLAS_TEMPLATE_SYNC_STRUCTURE`                | error    | Restore required module or update manifest ownership entries                             |
+| `ATLAS_TEMPLATE_SYNC_MANIFEST_INVALID`         | error    | Fix `templates/app-infrastructure.manifest.json`                                         |
+| `ATLAS_UPGRADE_BASELINE_MISSING`               | warning  | Record `platform.baseline` via `atlas init` or upgrade helpers                           |
+| `ATLAS_UPGRADE_BASELINE_STALE`                 | warning  | Complete supported upgrade and refresh baseline metadata                                 |
+| `ATLAS_UPGRADE_BASELINE_INCOMPLETE`            | error    | Re-capture baseline after restoring all manifest syncedPaths                             |
+| `ATLAS_UPGRADE_BASELINE_CHECKSUM_INVALID`      | error    | Fix malformed checksum values or re-run baseline capture                                 |
+| `ATLAS_UPGRADE_BASELINE_MANIFEST_INCOMPATIBLE` | warning  | Refresh baseline after manifest schema migration                                         |
+| `ATLAS_UPGRADE_BASELINE_STALE_ENTRY`           | warning  | Remove stale baseline entries or re-capture after manifest changes                       |
+| `ATLAS_VERSION_MISMATCH`                       | warning  | Align CLI/checkout Atlas snapshot versions                                               |
+| `ATLAS_ROOT_PACKAGE_METADATA_INVALID`          | error    | Restore valid root `package.json` version metadata                                       |
+| `ATLAS_WORKSPACE_CONFIG_MISSING`               | error    | Restore `pnpm-workspace.yaml` with configured workspace roots                            |
+| `ATLAS_WORKSPACE_PACKAGE_MANIFEST_MISSING`     | error    | Add missing workspace `package.json`                                                     |
+| `ATLAS_WORKSPACE_NOT_INCLUDED`                 | error    | Include configured roots in `pnpm-workspace.yaml`                                        |
+| `ATLAS_DOCTOR_CHECK_EXECUTION_FAILED`          | error    | Inspect tooling/config errors or report an Atlas CLI defect                              |
+| `ATLAS_MANIFEST_ALIGNMENT_DRIFT`               | error    | Run `pnpm atlas upgrade` so Atlas-owned manifest fields match baseline                   |
+| `ATLAS_MANIFEST_ALIGNMENT_EVIDENCE_INVALID`    | error    | Reinstall the Atlas CLI so local release evidence can be read                            |
+| `ATLAS_LEGACY_CLI_PIN`                         | warning  | Replace `pnpm dlx @blitzcraftlabs/atlas@<version> <command>` with `pnpm atlas <command>` |
+| `ATLAS_LEGACY_CLI_PIN_WORKFLOW`                | error    | A CI workflow pins a CLI older than the project; switch it to `pnpm atlas <command>`     |
 
 Only implemented codes are emitted.
 
