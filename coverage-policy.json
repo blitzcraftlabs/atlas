@@ -1,7 +1,8 @@
 {
   "reports": [
     { "id": "web", "path": "apps/web/coverage/coverage-final.json" },
-    { "id": "ui", "path": "packages/ui/coverage/coverage-final.json" }
+    { "id": "ui", "path": "packages/ui/coverage/coverage-final.json" },
+    { "id": "cli", "path": "packages/cli/coverage/coverage-final.json" }
   ],
   "subsystems": [
     {
@@ -51,6 +52,36 @@
       ],
       "exclude": ["**/*.test.ts", "**/*.test.tsx"],
       "thresholds": { "statements": 80, "lines": 80, "branches": 70, "functions": 80 }
+    },
+    {
+      "id": "cli-upgrade",
+      "report": "cli",
+      "include": ["**/packages/cli/src/upgrade/**", "**/packages/cli/src/commands/upgrade.ts"],
+      "exclude": [
+        "**/__tests__/**",
+        "**/*.test.ts",
+        "**/upgrade/build-release-assets-main.ts",
+        "**/upgrade/published-catalog-verifier.ts"
+      ],
+      "thresholds": { "statements": 86, "lines": 86, "branches": 71, "functions": 88 }
+    },
+    {
+      "id": "cli-template-sync",
+      "report": "cli",
+      "include": ["**/packages/cli/src/template-sync/**", "**/packages/cli/src/commands/sync.ts"],
+      "exclude": ["**/__tests__/**", "**/*.test.ts"],
+      "thresholds": { "statements": 80, "lines": 80, "branches": 61, "functions": 86 }
+    },
+    {
+      "id": "cli-init",
+      "report": "cli",
+      "include": [
+        "**/packages/cli/src/init/**",
+        "**/packages/cli/src/bootstrap/**",
+        "**/packages/cli/src/commands/init.ts"
+      ],
+      "exclude": ["**/__tests__/**", "**/*.test.ts"],
+      "thresholds": { "statements": 83, "lines": 83, "branches": 60, "functions": 91 }
     }
   ]
 }
