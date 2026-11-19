@@ -287,13 +287,13 @@ Atlas does **not** aim for repository-wide 80% coverage. Critical owned subsyste
 pnpm test:risk-coverage
 ```
 
-That command collects Jest coverage for `@atlas/web` and `@atlas/ui`, then evaluates
-[`coverage-policy.json`](../../coverage-policy.json) via `scripts/coverage-policy.mjs`. Missing
-reports, missing subsystems, zero matched files, or a metric below the floor fail the gate. CI
-collects the full aggregate once (`pnpm test:coverage:all`) without also running `pnpm test`, then
-runs the same policy evaluator. Architecture boundary tests run via `pnpm test:boundaries`.
-`pnpm test:risk-coverage` remains the local command that regenerates the two high-risk reports and
-evaluates floors.
+That command collects Jest coverage for `@atlas/web`, `@atlas/ui`, and the Atlas CLI
+(`@blitzcraftlabs/atlas`), then evaluates [`coverage-policy.json`](../../coverage-policy.json) via
+`scripts/coverage-policy.mjs`. Missing reports, missing subsystems, zero matched files, or a metric
+below the floor fail the gate. CI collects the full aggregate once (`pnpm test:coverage:all`)
+without also running `pnpm test`, then runs the same policy evaluator. Architecture boundary tests
+run via `pnpm test:boundaries`. `pnpm test:risk-coverage` remains the local command that regenerates
+the high-risk reports and evaluates floors.
 
 Suggested floors (do not lower them just to make CI green):
 
@@ -301,6 +301,12 @@ Suggested floors (do not lower them just to make CI green):
 | ------------------------ | ---------------- | -------- | --------- |
 | web auth, web API        | ≥ 85%            | ≥ 75%    | ≥ 85%     |
 | UI forms, owned UI logic | ≥ 80%            | ≥ 70%    | ≥ 80%     |
+| CLI upgrade              | ≥ 86%            | ≥ 71%    | ≥ 88%     |
+| CLI template sync        | ≥ 80%            | ≥ 61%    | ≥ 86%     |
+| CLI init / bootstrap     | ≥ 83%            | ≥ 60%    | ≥ 91%     |
+
+CLI floors are ratchets: each sits about one point below measured coverage when it was added. Raise
+a floor in the same PR that raises its coverage; never lower one to make CI green.
 
 Update floors in `coverage-policy.json` only with an explicit residual-risk note in
 [testing-risk-matrix.md](testing-risk-matrix.md).
@@ -381,6 +387,7 @@ pnpm test:watch
 # Package coverage (feeds the risk gate)
 pnpm --filter @atlas/web test:coverage
 pnpm --filter @atlas/ui test:coverage
+pnpm --filter @blitzcraftlabs/atlas test:coverage
 
 # Specific file
 pnpm test src/features/users/UserList.test.tsx
