@@ -7,9 +7,9 @@ function run(command, args) {
 }
 
 /** All published npm versions of the public CLI package (empty when the package is absent). */
-export function readNpmVersions() {
+export function readNpmVersions({ run: exec = run } = {}) {
   try {
-    const parsed = JSON.parse(run("npm", ["view", PUBLIC_PACKAGE, "versions", "--json"]) || "[]");
+    const parsed = JSON.parse(exec("npm", ["view", PUBLIC_PACKAGE, "versions", "--json"]) || "[]");
     return Array.isArray(parsed) ? parsed : [parsed];
   } catch (error) {
     if (String(error?.stderr ?? "").includes("E404")) return [];
@@ -17,15 +17,19 @@ export function readNpmVersions() {
   }
 }
 
-/** Tags and Releases (including drafts, which need contents access) for a repository. */
-export function readGithubReleaseState(ownerRepo) {
+/**
+ * Tags and Releases (including drafts, which need contents access) for a repository.
+ * `gh --paginate --jq` prints one compact array per page (`["a"]\n["b"]`); pages are joined into
+ * one array.
+ */
+export function readGithubReleaseState(ownerRepo, { run: exec = run } = {}) {
   const tags = JSON.parse(
-    run("gh", ["api", `repos/${ownerRepo}/tags?per_page=100`, "--paginate", "--jq", "[.[].name]"])
+    exec("gh", ["api", `repos/${ownerRepo}/tags?per_page=100`, "--paginate", "--jq", "[.[].name]"])
       .trim()
       .replace(/\]\s*\[/g, ",") || "[]"
   );
   const releases = JSON.parse(
-    run("gh", [
+    exec("gh", [
       "api",
       `repos/${ownerRepo}/releases?per_page=100`,
       "--paginate",

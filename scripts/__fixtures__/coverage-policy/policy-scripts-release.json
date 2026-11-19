@@ -1,0 +1,12 @@
+{
+  "reports": [{ "id": "scripts", "path": "unused.lcov", "format": "lcov" }],
+  "subsystems": [
+    {
+      "id": "scripts-release",
+      "report": "scripts",
+      "include": ["scripts/publish-atlas-release.mjs", "scripts/validate-governance.mjs"],
+      "requireFiles": ["scripts/publish-atlas-release.mjs", "scripts/validate-governance.mjs"],
+      "thresholds": { "lines": 50, "branches": 30, "functions": 50 }
+    }
+  ]
+}

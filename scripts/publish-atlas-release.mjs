@@ -28,7 +28,7 @@ import {
   sbomAssetNameForCommit,
 } from "./release-publication.mjs";
 
-function parseArgs(argv) {
+export function parseArgs(argv, env = process.env) {
   const options = {
     dryRun: false,
     skipGithub: false,
@@ -36,8 +36,8 @@ function parseArgs(argv) {
     repoRoot: process.cwd(),
     stateFile: null,
     outputDir: null,
-    ownerRepo: process.env.GITHUB_REPOSITORY ?? "blitzcraftlabs/atlas",
-    targetSha: process.env.GITHUB_SHA ?? null,
+    ownerRepo: env.GITHUB_REPOSITORY ?? "blitzcraftlabs/atlas",
+    targetSha: env.GITHUB_SHA ?? null,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -85,7 +85,11 @@ function runGit(args, options) {
   }).trim();
 }
 
-function loadGithubState(options) {
+function sleepMs(ms) {
+  execFileSync("sleep", [String(Math.ceil(ms / 1000))], { stdio: "ignore" });
+}
+
+export function loadGithubState(options, { gh = runGh } = {}) {
   if (options.stateFile) {
     return JSON.parse(readFileSync(options.stateFile, "utf8"));
   }
@@ -99,9 +103,9 @@ function loadGithubState(options) {
   }
 
   const [owner, repo] = options.ownerRepo.split("/");
-  const tagsJson = runGh(["api", `repos/${owner}/${repo}/tags`, "--paginate"], options);
-  const releasesJson = runGh(["api", `repos/${owner}/${repo}/releases`, "--paginate"], options);
-  const mainJson = runGh(["api", `repos/${owner}/${repo}/commits/main`], options);
+  const tagsJson = gh(["api", `repos/${owner}/${repo}/tags`, "--paginate"], options);
+  const releasesJson = gh(["api", `repos/${owner}/${repo}/releases`, "--paginate"], options);
+  const mainJson = gh(["api", `repos/${owner}/${repo}/commits/main`], options);
 
   const tags = JSON.parse(tagsJson || "[]");
   const releases = JSON.parse(releasesJson || "[]");
@@ -146,15 +150,25 @@ function writeSbom(repoRoot, commitSha, outputDir) {
   return { fileName, filePath, packageCount: sbom.packages.length };
 }
 
-function waitForRequiredChecks(options, sha) {
-  const timeoutMs = Number(process.env.ATLAS_RELEASE_CHECK_TIMEOUT_MS ?? 25 * 60 * 1000);
-  const pollMs = Number(process.env.ATLAS_RELEASE_CHECK_POLL_MS ?? 30_000);
-  const started = Date.now();
+export function waitForRequiredChecks(
+  options,
+  sha,
+  {
+    gh = runGh,
+    sleep = sleepMs,
+    now = Date.now,
+    env = process.env,
+    write = (text) => process.stdout.write(text),
+  } = {}
+) {
+  const timeoutMs = Number(env.ATLAS_RELEASE_CHECK_TIMEOUT_MS ?? 25 * 60 * 1000);
+  const pollMs = Number(env.ATLAS_RELEASE_CHECK_POLL_MS ?? 30_000);
+  const started = now();
   const required = new Set(REQUIRED_RELEASE_CHECK_WORKFLOWS);
   // JSON fields include databaseId and attempt so the evaluator can order runs.
 
-  while (Date.now() - started < timeoutMs) {
-    const raw = runGh(
+  while (now() - started < timeoutMs) {
+    const raw = gh(
       [
         "run",
         "list",
@@ -183,8 +197,8 @@ function waitForRequiredChecks(options, sha) {
       return;
     }
 
-    process.stdout.write(`Waiting for required checks: ${pending.join(", ")}\n`);
-    execFileSync("sleep", [String(Math.ceil(pollMs / 1000))], { stdio: "ignore" });
+    write(`Waiting for required checks: ${pending.join(", ")}\n`);
+    sleep(pollMs);
   }
 
   throw new PublicationError(`Timed out waiting for required checks: ${[...required].join(", ")}`, {
@@ -192,8 +206,8 @@ function waitForRequiredChecks(options, sha) {
   });
 }
 
-export function createGitTag(options, tag, sha) {
-  runGit(
+export function createGitTag(options, tag, sha, git = runGit) {
+  git(
     [
       "-c",
       "user.name=github-actions[bot]",
@@ -208,15 +222,15 @@ export function createGitTag(options, tag, sha) {
     ],
     options
   );
-  runGit(["push", "origin", tag], options);
+  git(["push", "origin", tag], options);
 }
 
-function uploadCanonicalReleaseAssets(options, tag, sbomPath, { clobber }) {
+function uploadCanonicalReleaseAssets(options, tag, sbomPath, { clobber, gh = runGh }) {
   const sbomArgs = ["release", "upload", tag, sbomPath, "--repo", options.ownerRepo];
   if (clobber) {
     sbomArgs.push("--clobber");
   }
-  runGh(sbomArgs, options);
+  gh(sbomArgs, options);
 
   const licensePath = path.join(options.repoRoot, "LICENSE");
   if (existsSync(licensePath)) {
@@ -224,13 +238,13 @@ function uploadCanonicalReleaseAssets(options, tag, sbomPath, { clobber }) {
     if (clobber) {
       licenseArgs.push("--clobber");
     }
-    runGh(licenseArgs, options);
+    gh(licenseArgs, options);
   }
 }
 
-function createGithubRelease(options, decision, notesPath, sbomPath) {
+function createGithubRelease(options, decision, notesPath, sbomPath, gh = runGh) {
   // Draft until npm publication is verified; finalize-atlas-release.mjs makes it public.
-  runGh(
+  gh(
     githubReleaseCreateArgs(decision, {
       ownerRepo: options.ownerRepo,
       targetSha: options.targetSha,
@@ -238,7 +252,7 @@ function createGithubRelease(options, decision, notesPath, sbomPath) {
     }),
     options
   );
-  uploadCanonicalReleaseAssets(options, decision.tag, sbomPath, { clobber: false });
+  uploadCanonicalReleaseAssets(options, decision.tag, sbomPath, { clobber: false, gh });
 }
 
 function resolvePublicationState(options, targetSha, loadState, dependencies = {}) {
@@ -313,20 +327,25 @@ function writeDecision(prepared, options) {
   );
 }
 
-export function applyPublication(options, prepared) {
+export function applyPublication(
+  options,
+  prepared,
+  { gh = runGh, git = runGit, write = (text) => process.stdout.write(text) } = {}
+) {
   const { decision, targetSha, sbom, notesPath } = prepared;
   const effects = publicationSideEffects(decision.action);
   if (effects.createTag) {
-    createGitTag(options, decision.tag, targetSha);
+    createGitTag(options, decision.tag, targetSha, git);
   }
   if (effects.createRelease) {
-    createGithubRelease(options, decision, notesPath, sbom.filePath);
+    createGithubRelease(options, decision, notesPath, sbom.filePath, gh);
   } else if (effects.uploadAssets) {
     uploadCanonicalReleaseAssets(options, decision.tag, sbom.filePath, {
       clobber: effects.clobberExactAssets,
+      gh,
     });
   }
-  process.stdout.write(`✓ Published ${decision.tag}\n`);
+  write(`✓ Published ${decision.tag}\n`);
 }
 
 /**

@@ -15,10 +15,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { resolveAtlasRepoRoot } from "./lib/distribution-clean-room.mjs";
-import {
-  NPM_TRUSTED_PUBLISHING_MIN_NPM,
-  runNpmPublication,
-} from "./lib/npm-publication.mjs";
+import { runNpmPublication } from "./lib/npm-publication.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 
@@ -41,7 +38,7 @@ NPM_TOKEN.
 `);
 }
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const options = { help: false, dryRun: false, oidc: false, skipBuild: false };
   for (const arg of argv) {
     if (arg === "--help" || arg === "-h") {
