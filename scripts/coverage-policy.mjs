@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 /**
- * Evaluate Istanbul coverage-final.json reports against named subsystem floors.
+ * Evaluate coverage reports against named subsystem floors.
  *
- * Fail closed: missing report, missing subsystem, zero matched files, or a metric
- * below threshold exits non-zero.
+ * Reports are Istanbul coverage-final.json (Jest) by default, or LCOV when the report entry sets
+ * `"format": "lcov"` (Node's test runner, used for root `scripts/**`). LCOV has no statements
+ * metric, so an LCOV subsystem must not set a statements threshold.
+ *
+ * Fail closed: missing report, missing subsystem, zero matched files, a `requireFiles` entry absent
+ * from the report, or a metric below threshold exits non-zero.
  */
 
 import fs from "node:fs";
@@ -60,11 +64,7 @@ function assertCoverageField(value, fieldName, filePath) {
 }
 
 function assertValidStatementLine(statementId, location, filePath) {
-  if (
-    !location?.start ||
-    !Number.isInteger(location.start.line) ||
-    location.start.line < 1
-  ) {
+  if (!location?.start || !Number.isInteger(location.start.line) || location.start.line < 1) {
     throw new Error(
       `Malformed Istanbul coverage for ${filePath}: statement ${statementId} has no valid statementMap entry`
     );
@@ -124,15 +124,112 @@ export function percent(covered, total) {
 
 export function loadPolicy(policyPath) {
   const raw = JSON.parse(fs.readFileSync(policyPath, "utf8"));
-  if (!raw || typeof raw !== "object" || !Array.isArray(raw.reports) || !Array.isArray(raw.subsystems)) {
+  if (
+    !raw ||
+    typeof raw !== "object" ||
+    !Array.isArray(raw.reports) ||
+    !Array.isArray(raw.subsystems)
+  ) {
     throw new Error("Coverage policy must include reports[] and subsystems[]");
   }
   return raw;
 }
 
-export function loadCoverageReport(reportPath) {
+function lcovNumber(value, field, reportPath, lineNumber) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`Malformed LCOV at ${reportPath}:${lineNumber}: ${field} has invalid count`);
+  }
+  return parsed;
+}
+
+function hitsToCount(hitsByKey) {
+  let covered = 0;
+  for (const hits of hitsByKey.values()) {
+    if (hits > 0) covered += 1;
+  }
+  return { covered, total: hitsByKey.size };
+}
+
+/**
+ * Parse LCOV into per-file summaries shaped like `summarizeFileCoverage` output.
+ * Counts come from DA/FNDA/BRDA records so a file listed more than once is merged, not double
+ * counted. Statements are reported as zero-of-zero because LCOV does not record them.
+ */
+export function parseLcovReport(text, reportPath = "<lcov>") {
+  const files = new Map();
+  let current = null;
+
+  const lines = text.split(/\r?\n/);
+  for (const [index, rawLine] of lines.entries()) {
+    const line = rawLine.trim();
+    const lineNumber = index + 1;
+    if (line.length === 0) continue;
+
+    if (line.startsWith("SF:")) {
+      const filePath = line.slice(3);
+      current = files.get(filePath) ?? {
+        lines: new Map(),
+        functions: new Map(),
+        branches: new Map(),
+      };
+      files.set(filePath, current);
+      continue;
+    }
+    if (line === "end_of_record") {
+      current = null;
+      continue;
+    }
+    if (!current) {
+      if (line.startsWith("TN:")) continue;
+      throw new Error(`Malformed LCOV at ${reportPath}:${lineNumber}: record outside SF block`);
+    }
+
+    const separator = line.indexOf(":");
+    const tag = separator === -1 ? line : line.slice(0, separator);
+    const value = separator === -1 ? "" : line.slice(separator + 1);
+
+    if (tag === "DA") {
+      const [lineNo, hits] = value.split(",");
+      const key = lcovNumber(lineNo, "DA line", reportPath, lineNumber);
+      const count = lcovNumber(hits, "DA hits", reportPath, lineNumber);
+      current.lines.set(key, Math.max(current.lines.get(key) ?? 0, count));
+    } else if (tag === "FNDA") {
+      const comma = value.indexOf(",");
+      const count = lcovNumber(value.slice(0, comma), "FNDA hits", reportPath, lineNumber);
+      const name = value.slice(comma + 1);
+      current.functions.set(name, Math.max(current.functions.get(name) ?? 0, count));
+    } else if (tag === "BRDA") {
+      const [lineNo, block, branch, hits] = value.split(",");
+      const key = `${lineNo},${block},${branch}`;
+      // "-" means the branch's block never ran.
+      const count = hits === "-" ? 0 : lcovNumber(hits, "BRDA hits", reportPath, lineNumber);
+      current.branches.set(key, Math.max(current.branches.get(key) ?? 0, count));
+    }
+    // FN, LF/LH, FNF/FNH, BRF/BRH and unknown tags are derivable or informational.
+  }
+
+  const report = {};
+  for (const [filePath, record] of files) {
+    report[filePath] = {
+      statements: { covered: 0, total: 0 },
+      lines: hitsToCount(record.lines),
+      functions: hitsToCount(record.functions),
+      branches: hitsToCount(record.branches),
+    };
+  }
+  return report;
+}
+
+export function loadCoverageReport(reportPath, format = "istanbul") {
   if (!fs.existsSync(reportPath)) {
     throw new Error(`Missing coverage report: ${reportPath}`);
+  }
+  if (format === "lcov") {
+    return parseLcovReport(fs.readFileSync(reportPath, "utf8"), reportPath);
+  }
+  if (format !== "istanbul") {
+    throw new Error(`Unsupported coverage report format "${format}" for ${reportPath}`);
   }
   const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
   if (!report || typeof report !== "object" || Array.isArray(report)) {
@@ -141,7 +238,7 @@ export function loadCoverageReport(reportPath) {
   return report;
 }
 
-export function evaluateSubsystem(subsystem, report) {
+export function evaluateSubsystem(subsystem, report, { format = "istanbul" } = {}) {
   const matched = [];
   for (const [filePath, fileCoverage] of Object.entries(report)) {
     if (subsystem.exclude && matchesAny(filePath, subsystem.exclude)) {
@@ -151,7 +248,9 @@ export function evaluateSubsystem(subsystem, report) {
       continue;
     }
     try {
-      matched.push({ filePath, summary: summarizeFileCoverage(fileCoverage, filePath) });
+      const summary =
+        format === "lcov" ? fileCoverage : summarizeFileCoverage(fileCoverage, filePath);
+      matched.push({ filePath, summary });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return {
@@ -181,6 +280,19 @@ export function evaluateSubsystem(subsystem, report) {
   const percents = {};
   const failures = [];
 
+  // LCOV only lists files a test loaded, so an untested file would silently drop out of the
+  // subsystem. requireFiles names the files that must be measured.
+  const matchedPaths = matched.map((entry) => toPosixPath(entry.filePath));
+  for (const required of subsystem.requireFiles ?? []) {
+    if (
+      !matchedPaths.some((filePath) => filePath === required || filePath.endsWith(`/${required}`))
+    ) {
+      failures.push(
+        `${subsystem.id}: required file ${required} is missing from the coverage report`
+      );
+    }
+  }
+
   for (const metric of METRICS) {
     if (typeof thresholds[metric] !== "number") continue;
     const value = percent(merged[metric].covered, merged[metric].total);
@@ -188,9 +300,7 @@ export function evaluateSubsystem(subsystem, report) {
     if (merged[metric].total === 0) {
       failures.push(`${subsystem.id} ${metric}: no instrumented ${metric}`);
     } else if (value + 1e-9 < thresholds[metric]) {
-      failures.push(
-        `${subsystem.id} ${metric}: ${value.toFixed(2)}% < ${thresholds[metric]}%`
-      );
+      failures.push(`${subsystem.id} ${metric}: ${value.toFixed(2)}% < ${thresholds[metric]}%`);
     }
   }
 
@@ -215,7 +325,12 @@ export function evaluateCoveragePolicy({ policy, reports }) {
     if (!reportEntry) {
       const message = `Subsystem ${subsystem.id} references unknown report "${subsystem.report}"`;
       failures.push(message);
-      results.push({ id: subsystem.id, ok: false, reason: "missing-report-id", failures: [message] });
+      results.push({
+        id: subsystem.id,
+        ok: false,
+        reason: "missing-report-id",
+        failures: [message],
+      });
       continue;
     }
 
@@ -229,7 +344,7 @@ export function evaluateCoveragePolicy({ policy, reports }) {
 
     let report;
     try {
-      report = loadCoverageReport(reportPath);
+      report = loadCoverageReport(reportPath, reportEntry.format);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       failures.push(message);
@@ -237,7 +352,7 @@ export function evaluateCoveragePolicy({ policy, reports }) {
       continue;
     }
 
-    const result = evaluateSubsystem(subsystem, report);
+    const result = evaluateSubsystem(subsystem, report, { format: reportEntry.format });
     results.push(result);
     failures.push(...result.failures);
   }
@@ -306,7 +421,8 @@ function main() {
   process.exit(evaluation.ok ? 0 : 1);
 }
 
-const invokedDirectly = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const invokedDirectly =
+  process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (invokedDirectly) {
   main();
 }
