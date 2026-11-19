@@ -7,6 +7,7 @@ import {
   runProjectContractCheck,
   runWorkspaceStructureCheck,
 } from "./checks";
+import { CLI_REFERENCES_CHECK, runCliReferencesCheck } from "./cli-references";
 import { createCheckExecutionFailedDiagnostic } from "./diagnostics";
 import { runManifestAlignmentCheck } from "./manifest-alignment";
 import { sortDiagnostics } from "./map-eslint";
@@ -87,6 +88,10 @@ export const DOCTOR_CHECKS: DoctorCheckDefinition[] = [
     rationale:
       "A recorded Atlas baseline must match the Atlas-owned package manifest fields shipped in that release. Consumer-owned dependency entries are ignored.",
     run: runManifestAlignmentCheck,
+  },
+  {
+    ...CLI_REFERENCES_CHECK,
+    run: runCliReferencesCheck,
   },
 ];
 
